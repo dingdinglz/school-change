@@ -4,6 +4,7 @@ import (
 	"change/config"
 	"change/database"
 	"change/logger"
+	"change/server"
 	"fmt"
 )
 
@@ -17,4 +18,5 @@ func main() {
 	database.InitDatabase()
 	logger.ConsoleLogger.Infoln("初始化已完成！")
 	logger.FileLogger.Infoln("服务已启动！")
+	server.Start()
 }
