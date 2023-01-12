@@ -2,6 +2,8 @@ package main
 
 import (
 	"change/config"
+	"change/database"
+	"change/logger"
 	"fmt"
 )
 
@@ -11,7 +13,8 @@ func main() {
 	fmt.Println("鸣谢：感谢老师，各位开源作者，以及帮助测试本项目的各位同学！没有你们就没有这个项目。")
 	InitPath()
 	config.InitConfig()
-	InitLogger()
-	ConsoleLogger.Infoln("初始化已完成！")
-	FileLogger.Infoln("服务已启动！")
+	logger.InitLogger()
+	database.InitDatabase()
+	logger.ConsoleLogger.Infoln("初始化已完成！")
+	logger.FileLogger.Infoln("服务已启动！")
 }

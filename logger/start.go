@@ -1,4 +1,4 @@
-package main
+package logger
 
 import (
 	"change/config"
@@ -6,11 +6,6 @@ import (
 	"os"
 	"path/filepath"
 	"time"
-)
-
-var (
-	ConsoleLogger *logrus.Logger
-	FileLogger    *logrus.Logger
 )
 
 // InitLogger 初始化日志器
