@@ -13,9 +13,10 @@ func InitConfig() {
 	rootPath, _ := os.Getwd()
 	if !tools.IsFileExist(filepath.Join(rootPath, "data", "change.config")) {
 		configInitText, err := json.Marshal(&ConfigJsonModel{
-			Port:  "80",
-			SSL:   false,
-			Debug: false,
+			Port:   "80",
+			SSL:    false,
+			Debug:  false,
+			School: "合肥市第七中学",
 		})
 		if err != nil {
 			fmt.Println("config创建出现错误！", err.Error())

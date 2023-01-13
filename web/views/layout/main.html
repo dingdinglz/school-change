@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <meta name="keywords" content="交换,旧物,校园,废物利用,回收,交易">
+    <meta name="description" content="校园内旧物交换平台，用于学生互相交换物品。">
+    <meta name="author" content="dinglz">
+    <link rel="stylesheet" href="/bulma.min.css">
+    <link rel="stylesheet" href="/layui/css/layui.css">
+    <title>校园旧物交换平台</title>
+</head>
+<body>
+<script src="/layui/layui.js"></script>
+<div class="modal" id="LoginModal">
+    <div class="modal-background"></div>
+    <div class="modal-card">
+        <header class="modal-card-head">
+            <p class="modal-card-title">登录</p>
+            <button class="delete" aria-label="close" onclick="document.getElementById('LoginModal').classList.remove('is-active')"></button>
+        </header>
+        <div class="layui-form">
+            <section class="modal-card-body">
+                <div class="field">
+                    <label class="label">用户名</label>
+                    <div class="control">
+                        <input name="username" class="input" type="text" placeholder="请输入用户名">
+                    </div>
+                </div>
+                <div class="field">
+                    <label class="label">密码</label>
+                    <div class="control">
+                        <input name="password" class="input" type="password" placeholder="请输入密码">
+                    </div>
+                </div>
+            </section>
+            <footer class="modal-card-foot">
+                <button class="button is-success is-fullwidth" lay-submit lay-filter="LoginForm">登录</button>
+            </footer>
+        </div>
+    </div>
+</div>
+<nav class="navbar" role="navigation" aria-label="main navigation">
+    <div class="navbar-brand">
+        <a class="navbar-item" href="/">
+            <img src="/logo.png" width="200" height="160">
+        </a>
+
+        <a role="button" class="navbar-burger" aria-label="menu" aria-expanded="false">
+            <span aria-hidden="true"></span>
+            <span aria-hidden="true"></span>
+            <span aria-hidden="true"></span>
+        </a>
+    </div>
+
+    <div id="navbarBasicExample" class="navbar-menu">
+        <div class="navbar-start">
+            <a class="navbar-item" href="/">
+                主页
+            </a>
+
+            <a class="navbar-item">
+                分类
+            </a>
+
+            <div class="navbar-item has-dropdown is-hoverable">
+                <a class="navbar-link">
+                    更多
+                </a>
+
+                <div class="navbar-dropdown">
+                    <a class="navbar-item">
+                        关于
+                    </a>
+                    <a class="navbar-item">
+                        关于作者
+                    </a>
+                    <a class="navbar-item">
+                        意见反馈
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <div class="navbar-end">
+            <div class="navbar-item">
+                <div class="buttons">
+                    <a class="button is-primary">
+                        <strong>注册</strong>
+                    </a>
+                    <a class="button is-light" onclick="document.getElementById('LoginModal').classList.add('is-active')">
+                        登录
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</nav>
+    <div style="margin: 10px">
+        {{embed}}
+    </div>
+    <footer class="footer">
+        <div class="content has-text-centered">
+            <p>
+                当前校区：<strong>{{.School}}</strong>
+                <br>
+                <strong>校园旧物交换平台</strong> by <strong>丁励治</strong> from <strong>合肥市第七中学</strong>.
+                <br>
+                copyright &copy; dinglz 2023
+            </p>
+        </div>
+    </footer>
+<script>
+    layui.use('form', function(){
+        var form = layui.form;
+        form.on('submit(LoginForm)', function(data){
+            layer.msg(JSON.stringify(data.field));
+            return false;
+        });
+    });
+</script>
+</body>
+</html>
