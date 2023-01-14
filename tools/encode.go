@@ -5,6 +5,7 @@ import (
 	"encoding/hex"
 )
 
+// MD5 取字符串的md5
 func MD5(src string) string {
 	m := md5.New()
 	m.Write([]byte(src))

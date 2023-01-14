@@ -83,6 +83,26 @@
 
         <div class="navbar-end">
             <div class="navbar-item">
+                {{if .User_login}}
+                <figure class="image">
+                    <img class="is-rounded" src="/avatar/{{.User_username}}">
+                </figure>
+                <div class="navbar-item has-dropdown is-hoverable">
+                    <a class="navbar-link">
+                        {{User_GetRealNameByUsername .User_username}}
+                    </a>
+
+                    <div class="navbar-dropdown">
+                        <a class="navbar-item">
+                            资料
+                        </a>
+                        <hr class="navbar-divider">
+                        <a class="navbar-item" href="/api/logout">
+                            退出登录
+                        </a>
+                    </div>
+                </div>
+                {{else}}
                 <div class="buttons">
                     <a class="button is-primary">
                         <strong>注册</strong>
@@ -91,6 +111,7 @@
                         登录
                     </a>
                 </div>
+                {{end}}
             </div>
         </div>
     </div>
@@ -113,10 +134,28 @@
     layui.use('form', function(){
         var form = layui.form;
         form.on('submit(LoginForm)', function(data){
-            layer.msg(JSON.stringify(data.field));
+            console.info("1")
+            layui.$.post("/api/login",data.field,function (res,status){
+                if(res.status === "ok")
+                {
+                    layer.msg(res.message,{icon:1})
+                    setTimeout(()=>{
+                        window.location.href = '/';
+                    },3000)
+                }
+                else
+                {
+                    layer.msg(res.message,{icon:2})
+                }
+            })
             return false;
         });
     });
 </script>
+{{if .WarningMessage}}
+<script>
+    layer.msg('{{.WarningMessage}}',{icon:3});
+</script>
+{{end}}
 </body>
 </html>
