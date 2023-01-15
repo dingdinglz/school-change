@@ -5,6 +5,7 @@ import (
 	"change/logger"
 	"github.com/gofiber/fiber/v2"
 	WebLogger "github.com/gofiber/fiber/v2/middleware/logger"
+	recover2 "github.com/gofiber/fiber/v2/middleware/recover"
 	"github.com/gofiber/fiber/v2/middleware/session"
 	"github.com/gofiber/template/html"
 	"os"
@@ -17,7 +18,7 @@ func Start() {
 	viewEngine.Reload(true)
 	WebServer = fiber.New(fiber.Config{Views: viewEngine})
 	SessionStore = session.New()
-	WebServer.Use(WebLogger.New())
+	WebServer.Use(WebLogger.New(), recover2.New())
 	WebServer.Static("/", "./web/public")
 	BindRoutes()
 	err := WebServer.Listen("0.0.0.0:" + config.ConfigData.Port)

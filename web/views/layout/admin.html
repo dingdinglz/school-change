@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width">
+  <title>校园旧物交换平台 - 后台</title>
+  <link rel="stylesheet" href="/layui/css/layui.css">
+</head>
+<body>
+<div class="layui-layout layui-layout-admin">
+  <div class="layui-header">
+    <div class="layui-logo layui-hide-xs layui-bg-black">校园旧物交换平台</div>
+    <!-- 头部区域（可配合layui 已有的水平导航） -->
+    <ul class="layui-nav layui-layout-left">
+      <!-- 移动端显示 -->
+      <li class="layui-nav-item layui-show-xs-inline-block layui-hide-sm" lay-header-event="menuLeft">
+        <i class="layui-icon layui-icon-spread-left"></i>
+      </li>
+    </ul>
+    <ul class="layui-nav layui-layout-right">
+      <li class="layui-nav-item layui-hide layui-show-md-inline-block">
+        <a href="javascript:;">
+          <img src="/avatar/{{.User_username}}" class="layui-nav-img">
+          {{User_GetRealNameByUsername .User_username}}
+        </a>
+        <dl class="layui-nav-child">
+          <dd><a href="/">回到前台</a></dd>
+          <dd><a href="/api/logout">登出</a></dd>
+        </dl>
+      </li>
+      <li class="layui-nav-item" lay-header-event="menuRight" lay-unselect>
+        <a href="javascript:;">
+          <i class="layui-icon layui-icon-more-vertical"></i>
+        </a>
+      </li>
+    </ul>
+  </div>
+
+  <div class="layui-side layui-bg-black">
+    <div class="layui-side-scroll">
+      <!-- 左侧导航区域（可配合layui已有的垂直导航） -->
+      <ul class="layui-nav layui-nav-tree" lay-filter="test">
+        <li class="layui-nav-item layui-nav-itemed">
+          <a class="" href="javascript:;">用户管理</a>
+          <dl class="layui-nav-child">
+            <dd><a href="/admin/user/manage">管理面板</a></dd>
+          </dl>
+        </li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="layui-body">
+    <!-- 内容主体区域 -->
+    <div style="padding: 15px;">
+      {{embed}}
+    </div>
+  </div>
+
+  <div class="layui-footer">
+    copyright &copy; dinglz(合肥第七中学丁励治) 校园旧物交换平台 2023
+  </div>
+</div>
+<script src="/layui/layui.js"></script>
+<script>
+  //JS
+  layui.use(['element', 'layer', 'util'], function(){
+    var element = layui.element
+            ,layer = layui.layer
+            ,util = layui.util
+            ,$ = layui.$;
+
+    //头部事件
+    util.event('lay-header-event', {
+      //左侧菜单事件
+      menuLeft: function(othis){
+      }
+      ,menuRight: function(){
+        layer.open({
+          type: 1
+          ,content: '<div style="padding: 15px;">校园旧物交换平台 by dinglz</div>'
+          ,area: ['260px', '100%']
+          ,offset: 'rt' //右上角
+          ,anim: 5
+          ,shadeClose: true
+        });
+      }
+    });
+
+  });
+</script>
+</body>
+</html>

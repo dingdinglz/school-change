@@ -1,5 +1,7 @@
 package database
 
+import "change/logger"
+
 // HaveSetting 获取指定设置是否存在
 func HaveSetting(name string) bool {
 	cnt, _ := DatabaseEngine.Table(new(SettingModel)).Where("name = ?", name).Count()
@@ -9,7 +11,10 @@ func HaveSetting(name string) bool {
 // WriteOrUpdateSetting 新建或更新设置
 func WriteOrUpdateSetting(name string, value string) {
 	if HaveSetting(name) {
-		_, _ = DatabaseEngine.Table(new(SettingModel)).Where("name = ?").Update(map[string]interface{}{"value": value})
+		_, e := DatabaseEngine.Table(new(SettingModel)).Where("name = ?", name).Update(&SettingModel{Value: value})
+		if e != nil {
+			logger.ConsoleLogger.Errorln(e.Error())
+		}
 		return
 	}
 	_, _ = DatabaseEngine.Table(new(SettingModel)).Insert(SettingModel{

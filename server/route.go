@@ -20,6 +20,12 @@ func MakeViewMap(c *fiber.Ctx) map[string]interface{} {
 	UserPassword := s.Get("user_password")
 	UserLevel := s.Get("user_level")
 	UserID := s.Get("user_id")
+	WarningMessage := s.Get("message_warning")
+	if WarningMessage != nil {
+		ResMap["WarningMessage"] = fmt.Sprintf("%s", WarningMessage)
+		s.Delete("message_warning")
+		_ = s.Save()
+	}
 	if UserUsername == nil || UserPassword == nil || UserLevel == nil {
 		ResMap["User_login"] = false
 	} else {
@@ -48,9 +54,21 @@ func MakeViewMap(c *fiber.Ctx) map[string]interface{} {
 func BindRoutes() {
 	WebServer.Get("/", indexRoute)
 	WebServer.Get("/avatar/:username", avatarRoute)
+
 	apiRoute := WebServer.Group("/api")
 	apiRoute.Post("/login", apiLoginRoute)
 	apiRoute.Get("/logout", apiLogoutRoute)
+
+	adminRoute := WebServer.Group("/admin")
+	adminRoute.Use(middleAdminRoute)
+	adminRoute.Get("/", func(ctx *fiber.Ctx) error {
+		return ctx.Redirect("/admin/user/manage")
+	})
+	adminRoute.Get("/user/manage", adminUserManageRoute)
+
+	adminApiRoute := adminRoute.Group("/api")
+	adminApiGetRoute := adminApiRoute.Group("/get")
+	adminApiGetRoute.Post("/users", adminApiGetUsers)
 }
 
 // indexRoute 主页路由
@@ -62,6 +80,14 @@ func indexRoute(ctx *fiber.Ctx) error {
 func MakeApiResMap(ok bool, message string) fiber.Map {
 	if ok {
 		return fiber.Map{"status": "ok", "message": message}
+	}
+	return fiber.Map{"status": "err", "message": message}
+}
+
+// MakeApiResMapWithData 生成带返回数据的json
+func MakeApiResMapWithData(ok bool, message string, data fiber.Map) fiber.Map {
+	if ok {
+		return fiber.Map{"status": "ok", "message": message, "data": data}
 	}
 	return fiber.Map{"status": "err", "message": message}
 }
@@ -99,7 +125,7 @@ func avatarRoute(ctx *fiber.Ctx) error {
 	return ctx.SendFile(filepath.Join(rootPath, "data", "avatar", username+".png"))
 }
 
-// apiLogoutRoute
+// apiLogoutRoute 登出
 func apiLogoutRoute(ctx *fiber.Ctx) error {
 	s, _ := SessionStore.Get(ctx)
 	s.Delete("user_username")
@@ -108,4 +134,36 @@ func apiLogoutRoute(ctx *fiber.Ctx) error {
 	s.Delete("user_id")
 	_ = s.Save()
 	return ctx.Redirect("/")
+}
+
+// adminUserManageRoute 后台用户管理路由
+func adminUserManageRoute(ctx *fiber.Ctx) error {
+	return ctx.Render("admin/user", MakeViewMap(ctx), "layout/admin")
+}
+
+// adminApiGetUsers 后台取用户列表
+func adminApiGetUsers(ctx *fiber.Ctx) error {
+	// xorm没有分页的方法，这一段自己写分页逻辑，快把自己整傻了
+	page := ctx.FormValue("page")
+	pageInt, _ := strconv.Atoi(page)
+	if pageInt == 0 {
+		return ctx.JSON(MakeApiResMap(false, "page解析错误！"))
+	}
+	userAll := database.UserGetNumReal()
+	var pageAll int = 0
+	if userAll%10 == 0 {
+		pageAll = userAll / 10
+	} else {
+		pageAll = userAll/10 + 1
+	}
+	if pageInt > pageAll {
+		return ctx.JSON(MakeApiResMap(false, "page解析错误！"))
+	}
+	var userAllData []database.UserModel
+	_ = database.DatabaseEngine.Table(new(database.UserModel)).Find(&userAllData)
+	//logger.ConsoleLogger.Debugln(pageInt*10-10, userAll-1, pageInt*10-1)
+	if pageInt*10 >= userAll {
+		return ctx.JSON(MakeApiResMapWithData(true, "ok", fiber.Map{"all": pageAll, "users": userAllData[(pageInt*10 - 10):(userAll)]}))
+	}
+	return ctx.JSON(MakeApiResMapWithData(true, "ok", fiber.Map{"all": pageAll, "users": userAllData[(pageInt*10 - 10):(pageInt * 10)]}))
 }

@@ -96,6 +96,11 @@
                         <a class="navbar-item">
                             资料
                         </a>
+                        {{if gt .User_level 1}}
+                        <a class="navbar-item" href="/admin">
+                            管理后台
+                        </a>
+                        {{end}}
                         <hr class="navbar-divider">
                         <a class="navbar-item" href="/api/logout">
                             退出登录

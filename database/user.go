@@ -14,6 +14,12 @@ func UserGetNum() int {
 	return res_i
 }
 
+// UserGetNumReal 返回用户记录条数
+func UserGetNumReal() int {
+	res, _ := DatabaseEngine.Table(new(UserModel)).Count()
+	return int(res)
+}
+
 // UserCreateNew 创建一个新用户，无任何过滤，纯表操作
 func UserCreateNew(username string, password string, level int, ip string, grade int, class int, realname string) error {
 	logger.ConsoleLogger.Debugln("创建新用户：" + username)
