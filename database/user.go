@@ -74,3 +74,34 @@ func UserGetRealnameByUsername(username string) string {
 	u := UserGetUserByUsername(username)
 	return u.Realname
 }
+
+// UserHaveUserByID 根据id判断用户是否存在
+func UserHaveUserByID(id int) bool {
+	cnt, _ := DatabaseEngine.Table(new(UserModel)).Where("id = ?", id).Count()
+	return cnt != 0
+}
+
+func UserGetLevelByID(id int) int {
+	if !UserHaveUserByID(id) {
+		return 0
+	}
+	var u UserModel
+	_, _ = DatabaseEngine.Table(new(UserModel)).Where("id = ?", id).Get(&u)
+	return u.Level
+}
+
+// UserCheckChangeAble 判断是否可以操作目标
+func UserCheckChangeAble(myID int, opID int) bool {
+	if myID == opID {
+		return false
+	}
+	myLevel := UserGetLevelByID(myID)
+	if myLevel == 3 {
+		return true
+	}
+	opLevel := UserGetLevelByID(opID)
+	if myLevel > opLevel {
+		return true
+	}
+	return false
+}

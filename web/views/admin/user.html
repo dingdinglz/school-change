@@ -1,1 +1,104 @@
 <h1>用户管理</h1>
+<div id="app">
+    <table class="layui-table">
+        <colgroup>
+            <col width="5%">
+            <col width="15%">
+            <col width="10%">
+            <col width="5%">
+            <col width="5%">
+            <col width="20%">
+            <col>
+        </colgroup>
+        <thead>
+        <tr>
+            <th>ID</th>
+            <th>用户名</th>
+            <th>真实姓名</th>
+            <th>年级</th>
+            <th>班级</th>
+            <th>IP</th>
+            <th>操作</th>
+        </tr>
+        </thead>
+        <tbody>
+        <tr v-for="i in UserDatas">
+            <td>{{"{{"}}i.ID{{"}}"}}</td>
+            <td>{{"{{"}}i.Username{{"}}"}}</td>
+            <td>{{"{{"}}i.Realname{{"}}"}}</td>
+            <td>{{"{{"}}i.Grade{{"}}"}}</td>
+            <td>{{"{{"}}i.Class{{"}}"}}</td>
+            <td>{{"{{"}}i.Ip{{"}}"}}</td>
+            <td>
+                <button class="layui-btn layui-btn-normal">更改</button>
+                <button class="layui-btn layui-btn-danger" v-on:click="DeleteUser(i.ID)">删除</button>
+            </td>
+        </tr>
+        </tbody>
+    </table>
+    <div id="pageChange"></div>
+</div>
+<script>
+    const {createApp} =Vue;
+    createApp({
+        data() {
+            return {
+                "UserDatas":[],
+                "AllCount":0
+            }
+        },
+        methods: {
+            RefreshUserData(page) {
+                var that = this;
+                window.layui.$.post("/admin/api/get/users",{page:page},function (res,status){
+                    if(res.status !== "ok") {
+                        window.layer.msg(res.message,{icon:2})
+                    }
+                    else
+                    {
+                        that.UserDatas = res.data.users;
+                        that.AllCount = res.data.all;
+                        if (page === 1)
+                        {
+                            that.RefreshPageRender();
+                        }
+                    }
+                })
+            },
+            RefreshPageRender() {
+                var that = this;
+                window.layui.use("laypage",function (){
+                    console.info(that.AllCount)
+                    var laypage = window.layui.laypage;
+                    laypage.render({
+                        elem: 'pageChange'
+                        ,count: that.AllCount
+                        ,jump: function(obj, first){
+                            //首次不执行
+                            if(!first){
+                                that.RefreshUserData(obj.curr)
+                            }
+                        }
+                    });
+                })
+            },
+            DeleteUser(id) {
+                var that = this;
+                window.layui.$.post('/admin/api/delete/user',{id:id},function (res,status){
+                    if(res.status === "ok")
+                    {
+                        window.layer.msg(res.message,{icon:1})
+                        that.RefreshUserData(1)
+                    }
+                    else
+                    {
+                        window.layer.msg(res.message,{icon:2})
+                    }
+                })
+            }
+        },
+        mounted(){
+            this.RefreshUserData(1)
+        }
+    }).mount('#app')
+</script>

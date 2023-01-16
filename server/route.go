@@ -69,6 +69,9 @@ func BindRoutes() {
 	adminApiRoute := adminRoute.Group("/api")
 	adminApiGetRoute := adminApiRoute.Group("/get")
 	adminApiGetRoute.Post("/users", adminApiGetUsers)
+
+	adminApiDeleteRoute := adminApiRoute.Group("/delete")
+	adminApiDeleteRoute.Post("/user", adminApiDeleteUserRoute)
 }
 
 // indexRoute 主页路由
@@ -163,7 +166,27 @@ func adminApiGetUsers(ctx *fiber.Ctx) error {
 	_ = database.DatabaseEngine.Table(new(database.UserModel)).Find(&userAllData)
 	//logger.ConsoleLogger.Debugln(pageInt*10-10, userAll-1, pageInt*10-1)
 	if pageInt*10 >= userAll {
-		return ctx.JSON(MakeApiResMapWithData(true, "ok", fiber.Map{"all": pageAll, "users": userAllData[(pageInt*10 - 10):(userAll)]}))
+		return ctx.JSON(MakeApiResMapWithData(true, "ok", fiber.Map{"all": userAll, "users": userAllData[(pageInt*10 - 10):(userAll)]}))
 	}
-	return ctx.JSON(MakeApiResMapWithData(true, "ok", fiber.Map{"all": pageAll, "users": userAllData[(pageInt*10 - 10):(pageInt * 10)]}))
+	return ctx.JSON(MakeApiResMapWithData(true, "ok", fiber.Map{"all": userAll, "users": userAllData[(pageInt*10 - 10):(pageInt * 10)]}))
+}
+
+// adminApiDeleteUserRoute admin删除用户Route
+func adminApiDeleteUserRoute(ctx *fiber.Ctx) error {
+	id := ctx.FormValue("id", "")
+	if id == "" {
+		return ctx.JSON(MakeApiResMap(false, "字段为空！"))
+	}
+	idInt, _ := strconv.Atoi(id)
+	if !database.UserHaveUserByID(idInt) {
+		return ctx.JSON(MakeApiResMap(false, "用户不存在！"))
+	}
+	s, _ := SessionStore.Get(ctx)
+	myID := s.Get("user_id")
+	myIDint, _ := strconv.Atoi(fmt.Sprintf("%s", myID))
+	if !database.UserCheckChangeAble(myIDint, idInt) {
+		return ctx.JSON(MakeApiResMap(false, "无操作权限！"))
+	}
+	_, _ = database.DatabaseEngine.Table(new(database.UserModel)).Where("id = ?", idInt).Delete()
+	return ctx.JSON(MakeApiResMap(true, "删除成功！"))
 }
