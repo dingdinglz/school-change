@@ -16,7 +16,12 @@ func Start() {
 	viewEngine := html.New("./web/views", ".html")
 	viewEngineAddFuncs(viewEngine)
 	viewEngine.Reload(true)
-	WebServer = fiber.New(fiber.Config{Views: viewEngine})
+	WebServer = fiber.New(fiber.Config{Views: viewEngine,
+		ErrorHandler: func(ctx *fiber.Ctx, err error) error {
+			i := MakeViewMap(ctx)
+			i["Error"] = err.Error()
+			return ctx.Render("error", i, "layout/main")
+		}})
 	SessionStore = session.New()
 	WebServer.Use(WebLogger.New(), recover2.New())
 	WebServer.Static("/", "./web/public")

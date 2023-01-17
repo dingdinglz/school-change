@@ -67,11 +67,19 @@ func BindRoutes() {
 	adminRoute.Get("/user/manage", adminUserManageRoute)
 
 	adminApiRoute := adminRoute.Group("/api")
+
 	adminApiGetRoute := adminApiRoute.Group("/get")
 	adminApiGetRoute.Post("/users", adminApiGetUsers)
 
 	adminApiDeleteRoute := adminApiRoute.Group("/delete")
 	adminApiDeleteRoute.Post("/user", adminApiDeleteUserRoute)
+
+	adminApiUpdateRoute := adminApiRoute.Group("/update")
+	adminApiUpdateRoute.Post("/user", adminApiUpdateUserRoute)
+
+	adminApiCreateRoute := adminApiRoute.Group("/create")
+	adminApiCreateRoute.Post("/user", adminApiCreateUser)
+
 }
 
 // indexRoute 主页路由
@@ -189,4 +197,61 @@ func adminApiDeleteUserRoute(ctx *fiber.Ctx) error {
 	}
 	_, _ = database.DatabaseEngine.Table(new(database.UserModel)).Where("id = ?", idInt).Delete()
 	return ctx.JSON(MakeApiResMap(true, "删除成功！"))
+}
+
+// adminApiUpdateUserRoute admin更新用户Route
+func adminApiUpdateUserRoute(ctx *fiber.Ctx) error {
+	id := ctx.FormValue("id", "")
+	username := ctx.FormValue("username", "")
+	level := ctx.FormValue("level", "")
+	grade := ctx.FormValue("grade", "")
+	class := ctx.FormValue("class", "")
+	realname := ctx.FormValue("realname", "")
+	s, _ := SessionStore.Get(ctx)
+	myID := s.Get("user_id")
+	if !database.UserCheckChangeAble(tools.InterfaceToInt(myID), tools.StringToInt(id)) {
+		return ctx.JSON(MakeApiResMap(false, "无操作权限！"))
+	}
+	if tools.StringToInt(level) > database.UserGetLevelByID(tools.InterfaceToInt(myID)) {
+		return ctx.JSON(MakeApiResMap(false, "不能操作到比自身高的level！"))
+	}
+	if id == "" || username == "" || level == "" || grade == "" || class == "" || realname == "" {
+		return ctx.JSON(MakeApiResMap(false, "存在字段为空！"))
+	}
+	_, _ = database.DatabaseEngine.Table(new(database.UserModel)).Where("id = ?", tools.StringToInt(id)).Update(&database.UserModel{
+		Username: username,
+		Level:    tools.StringToInt(level),
+		Grade:    tools.StringToInt(grade),
+		Class:    tools.StringToInt(class),
+		Realname: realname,
+	})
+	return ctx.JSON(MakeApiResMap(true, "更新成功！"))
+}
+
+// adminApiCreateUser 创建新用户
+func adminApiCreateUser(ctx *fiber.Ctx) error {
+	username := ctx.FormValue("username", "")
+	password := ctx.FormValue("password", "")
+	level := ctx.FormValue("level", "")
+	grade := ctx.FormValue("grade", "")
+	class := ctx.FormValue("class", "")
+	realname := ctx.FormValue("realname", "")
+	ip := ctx.IP()
+	if username == "" || password == "" || level == "" || grade == "" || class == "" || realname == "" {
+		return ctx.JSON(MakeApiResMap(false, "存在字段为空！"))
+	}
+	_, e := database.UserCheckCreateAble(username, password, tools.StringToInt(level), tools.StringToInt(class), tools.StringToInt(grade))
+	if e != nil {
+		return ctx.JSON(MakeApiResMap(false, e.Error()))
+	}
+	s, _ := SessionStore.Get(ctx)
+	myID := s.Get("user_id")
+	if database.UserGetLevelByID(tools.InterfaceToInt(myID)) < tools.StringToInt(level) {
+		return ctx.JSON(MakeApiResMap(false, "权限不足！"))
+	}
+	err := database.UserCreateNew(username, password, tools.StringToInt(level), ip, tools.StringToInt(grade), tools.StringToInt(class), realname)
+	if err != nil {
+		return ctx.JSON(MakeApiResMap(false, "创建用户失败！"+err.Error()))
+	}
+	return ctx.JSON(MakeApiResMap(true, "创建成功！"))
 }

@@ -3,6 +3,7 @@ package database
 import (
 	"change/logger"
 	"change/tools"
+	"errors"
 	"strconv"
 	"time"
 )
@@ -104,4 +105,27 @@ func UserCheckChangeAble(myID int, opID int) bool {
 		return true
 	}
 	return false
+}
+
+// UserCheckCreateAble 判断用户是否可以被创建
+func UserCheckCreateAble(username string, password string, level int, class int, grade int) (bool, error) {
+	if len(username) < 6 || len(username) > 15 {
+		return false, errors.New("用户名长度不符合规则！")
+	}
+	if !tools.IsAllEnglish(username) {
+		return false, errors.New("用户名必须只包含英文字母！")
+	}
+	if UserHaveUserByUsername(username) {
+		return false, errors.New("用户名已被使用！")
+	}
+	if len(password) < 8 || len(password) > 50 {
+		return false, errors.New("密码长度不符合！")
+	}
+	if level < 1 || level > 3 {
+		return false, errors.New("level不符合规则！")
+	}
+	if class <= 0 || grade <= 0 {
+		return false, errors.New("班级或年级有误！")
+	}
+	return true, nil
 }

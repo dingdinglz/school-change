@@ -1,7 +1,92 @@
-<h1>用户管理</h1>
+<div id="CreateUserForm" style="display: none">
+    <div class="layui-form" style="margin: 5px">
+        <div class="layui-form-item">
+            <label class="layui-form-label">用户名</label>
+            <div class="layui-input-block">
+                <input type="text" name="username" required  lay-verify="required" placeholder="请输入用户名" autocomplete="off" class="layui-input">
+            </div>
+        </div>
+        <div class="layui-form-item">
+            <label class="layui-form-label">密码</label>
+            <div class="layui-input-block">
+                <input type="password" name="password" required  lay-verify="required" placeholder="请输入密码" autocomplete="off" class="layui-input">
+            </div>
+        </div>
+        <div class="layui-form-item">
+            <label class="layui-form-label">Level</label>
+            <div class="layui-input-block">
+                <input type="number" name="level" required  lay-verify="required" placeholder="请输入用户等级" autocomplete="off" class="layui-input">
+            </div>
+        </div>
+        <div class="layui-form-item">
+            <label class="layui-form-label">年级</label>
+            <div class="layui-input-block">
+                <input type="number" name="grade" required  lay-verify="required" placeholder="请输入年级" autocomplete="off" class="layui-input">
+            </div>
+        </div>
+        <div class="layui-form-item">
+            <label class="layui-form-label">班级</label>
+            <div class="layui-input-block">
+                <input type="number" name="class" required  lay-verify="required" placeholder="请输入班级" autocomplete="off" class="layui-input">
+            </div>
+        </div>
+        <div class="layui-form-item">
+            <label class="layui-form-label">真实姓名</label>
+            <div class="layui-input-block">
+                <input type="text" name="realname" required  lay-verify="required" placeholder="请输入真实姓名" autocomplete="off" class="layui-input">
+            </div>
+        </div>
+        <div class="layui-form-item">
+            <div class="layui-input-block">
+                <button class="layui-btn layui-btn-fluid" lay-submit lay-filter="createUserForm">新建</button>
+            </div>
+        </div>
+    </div>
+</div>
+<div id="UpdateUserForm" style="display: none">
+    <div class="layui-form" style="margin: 5px">
+        <div class="layui-form-item">
+            <label class="layui-form-label">用户名</label>
+            <div class="layui-input-block">
+                <input type="text" name="username" required  lay-verify="required" placeholder="请输入用户名" autocomplete="off" class="layui-input" value="[username]">
+            </div>
+        </div>
+        <div class="layui-form-item">
+            <label class="layui-form-label">Level</label>
+            <div class="layui-input-block">
+                <input type="number" name="level" required  lay-verify="required" placeholder="请输入用户等级" autocomplete="off" class="layui-input" value="[level]">
+            </div>
+        </div>
+        <div class="layui-form-item">
+            <label class="layui-form-label">年级</label>
+            <div class="layui-input-block">
+                <input type="number" name="grade" required  lay-verify="required" placeholder="请输入年级" autocomplete="off" class="layui-input" value="[grade]">
+            </div>
+        </div>
+        <div class="layui-form-item">
+            <label class="layui-form-label">班级</label>
+            <div class="layui-input-block">
+                <input type="number" name="class" required  lay-verify="required" placeholder="请输入班级" autocomplete="off" class="layui-input" value="[class]">
+            </div>
+        </div>
+        <div class="layui-form-item">
+            <label class="layui-form-label">真实姓名</label>
+            <div class="layui-input-block">
+                <input type="text" name="realname" required  lay-verify="required" placeholder="请输入真实姓名" autocomplete="off" class="layui-input" value="[realname]">
+            </div>
+        </div>
+        <div class="layui-form-item">
+            <div class="layui-input-block">
+                <button class="layui-btn layui-btn-fluid" lay-submit lay-filter="updateUserForm">更新</button>
+            </div>
+        </div>
+    </div>
+</div>
 <div id="app">
+    <button class="layui-btn" v-on:click="OnCreateNewUserBtn">新增用户</button>
     <table class="layui-table">
         <colgroup>
+            <col width="5%">
             <col width="5%">
             <col width="15%">
             <col width="10%">
@@ -13,6 +98,7 @@
         <thead>
         <tr>
             <th>ID</th>
+            <th>Level</th>
             <th>用户名</th>
             <th>真实姓名</th>
             <th>年级</th>
@@ -24,13 +110,14 @@
         <tbody>
         <tr v-for="i in UserDatas">
             <td>{{"{{"}}i.ID{{"}}"}}</td>
+            <td>{{"{{"}}i.Level{{"}}"}}</td>
             <td>{{"{{"}}i.Username{{"}}"}}</td>
             <td>{{"{{"}}i.Realname{{"}}"}}</td>
             <td>{{"{{"}}i.Grade{{"}}"}}</td>
             <td>{{"{{"}}i.Class{{"}}"}}</td>
             <td>{{"{{"}}i.Ip{{"}}"}}</td>
             <td>
-                <button class="layui-btn layui-btn-normal">更改</button>
+                <button class="layui-btn layui-btn-normal" v-on:click="OnUpdateNewUserBtn(i.ID,i.Username,i.Level,i.Grade,i.Class,i.Realname)">更改</button>
                 <button class="layui-btn layui-btn-danger" v-on:click="DeleteUser(i.ID)">删除</button>
             </td>
         </tr>
@@ -43,8 +130,10 @@
     createApp({
         data() {
             return {
-                "UserDatas":[],
-                "AllCount":0
+                UserDatas:[],
+                AllCount:0,
+                CreateUserModalID:0,
+                UpdateUserModalID:0
             }
         },
         methods: {
@@ -68,7 +157,7 @@
             RefreshPageRender() {
                 var that = this;
                 window.layui.use("laypage",function (){
-                    console.info(that.AllCount)
+                    //console.info(that.AllCount)
                     var laypage = window.layui.laypage;
                     laypage.render({
                         elem: 'pageChange'
@@ -95,6 +184,56 @@
                         window.layer.msg(res.message,{icon:2})
                     }
                 })
+            },
+            OnCreateNewUserBtn() {
+                this.CreateUserModalID = window.layer.open({
+                    type:1,
+                    title:"新建用户",
+                    shadeClose:true,
+                    content:document.getElementById("CreateUserForm").innerHTML
+                });
+                var that = this;
+                window.layui.use('form', function(){
+                    var form = window.layui.form;
+                    form.on('submit(createUserForm)', function(data){
+                        window.layui.$.post('/admin/api/create/user',data.field,function (res,status){
+                            if (res.status === "ok") {
+                                window.layer.close(that.CreateUserModalID);
+                                window.layer.msg(res.message,{icon:1})
+                                that.RefreshUserData(1)
+                            } else {
+                                window.layer.msg(res.message,{icon:2})
+                            }
+                        })
+                        return false;
+                    });
+                });
+            },
+            OnUpdateNewUserBtn(id,username,level,grade,_class,realname) {
+                this.UpdateUserModalID = window.layer.open({
+                    type:1,
+                    title:"更新用户:"+username,
+                    shadeClose:true,
+                    content:document.getElementById("UpdateUserForm").innerHTML.replaceAll("[username]",username).replaceAll("[level]",level).replaceAll("[grade]",grade).replaceAll("[class]",_class).replaceAll("[realname]",realname)
+                });
+                var that = this;
+                window.layui.use('form', function(){
+                    var form = window.layui.form;
+                    form.on('submit(updateUserForm)', function(data){
+                        var reqMap = data.field;
+                        reqMap.id = id;
+                        window.layui.$.post('/admin/api/update/user',reqMap,function (res,status){
+                            if (res.status === "ok") {
+                                window.layer.close(that.UpdateUserModalID);
+                                window.layer.msg(res.message,{icon:1})
+                                that.RefreshUserData(1)
+                            } else {
+                                window.layer.msg(res.message,{icon:2})
+                            }
+                        })
+                        return false;
+                    });
+                });
             }
         },
         mounted(){
