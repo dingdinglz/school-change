@@ -4,16 +4,8 @@ import (
 	"change/logger"
 	"change/tools"
 	"errors"
-	"strconv"
 	"time"
 )
-
-// UserGetNum 返回用户总数
-func UserGetNum() int {
-	res := GetSetting("user")
-	res_i, _ := strconv.Atoi(res)
-	return res_i
-}
 
 // UserGetNumReal 返回用户记录条数
 func UserGetNumReal() int {
@@ -25,7 +17,6 @@ func UserGetNumReal() int {
 func UserCreateNew(username string, password string, level int, ip string, grade int, class int, realname string) error {
 	logger.ConsoleLogger.Debugln("创建新用户：" + username)
 	_, err := DatabaseEngine.Table(new(UserModel)).Insert(UserModel{
-		ID:       UserGetNum() + 1,
 		Username: username,
 		Password: tools.MD5(password),
 		Level:    level,
@@ -35,7 +26,6 @@ func UserCreateNew(username string, password string, level int, ip string, grade
 		Class:    class,
 		Realname: realname,
 	})
-	WriteOrUpdateSetting("user", strconv.Itoa(UserGetNum()+1))
 	return err
 }
 
@@ -128,4 +118,43 @@ func UserCheckCreateAble(username string, password string, level int, class int,
 		return false, errors.New("班级或年级有误！")
 	}
 	return true, nil
+}
+
+// UserApplyCreate 创建用户注册申请
+func UserApplyCreate(username string, password string, ip string, grade int, class int, realname string) {
+	_, _ = DatabaseEngine.Table(new(ApplyModel)).Insert(&ApplyModel{
+		Time:     time.Now(),
+		Username: username,
+		Password: password,
+		Ip:       ip,
+		Grade:    grade,
+		Class:    class,
+		Realname: realname,
+	})
+}
+
+// UserApplyHaveIP 用户ip是否已经申请过
+func UserApplyHaveIP(ip string) bool {
+	cnt, _ := DatabaseEngine.Table(new(ApplyModel)).Where("ip = ?", ip).Count()
+	return cnt != 0
+}
+
+// UserApplyPass 通过申请
+func UserApplyPass(ip string) error {
+	if !UserApplyHaveIP(ip) {
+		return errors.New("申请不存在！")
+	}
+	var u ApplyModel
+	_, _ = DatabaseEngine.Table(new(ApplyModel)).Where("ip = ?", ip).Get(&u)
+	cCreate, err := UserCheckCreateAble(u.Username, u.Password, 1, u.Class, u.Grade)
+	if !cCreate {
+		return err
+	}
+	_ = UserCreateNew(u.Username, u.Password, 1, u.Ip, u.Grade, u.Class, u.Realname)
+	_, _ = DatabaseEngine.Table(new(ApplyModel)).Where("ip = ?", ip).Delete()
+	return nil
+}
+
+func UserApplyStop(ip string) {
+	_, _ = DatabaseEngine.Table(new(ApplyModel)).Where("ip = ?", ip).Delete()
 }

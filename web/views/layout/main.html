@@ -39,6 +39,61 @@
         </div>
     </div>
 </div>
+<div class="modal" id="RegisterModal">
+    <div class="modal-background"></div>
+    <div class="modal-card">
+        <header class="modal-card-head">
+            <p class="modal-card-title">注册</p>
+            <button class="delete" aria-label="close" onclick="document.getElementById('RegisterModal').classList.remove('is-active')"></button>
+        </header>
+        <div class="layui-form">
+            <section class="modal-card-body">
+                <div class="notification is-info">
+                    理论上学生账号应该由校方上传数据自动生成。本注册仅适用于由于<strong>特殊情况</strong>未能获得账号的情况。
+                </div>
+                <div class="field">
+                    <label class="label">用户名</label>
+                    <div class="control">
+                        <input name="username" class="input" type="text" placeholder="请输入用户名">
+                    </div>
+                    <p class="help">作为登录的账号，必须只包含英文！</p>
+                    <p class="help">长度在6位到15位之间</p>
+                </div>
+                <div class="field">
+                    <label class="label">密码</label>
+                    <div class="control">
+                        <input name="password" class="input" type="password" placeholder="请输入密码">
+                    </div>
+                    <p class="help">长度在8位到50位之间</p>
+                </div>
+                <div class="field">
+                    <label class="label">真实姓名</label>
+                    <div class="control">
+                        <input name="realname" class="input" type="text" placeholder="请输入真实姓名">
+                    </div>
+                    <p class="help">作为在本网站上的身份凭证。冒用身份者需承担造成的一切责任。</p>
+                </div>
+                <div class="field">
+                    <label class="label">年级</label>
+                    <div class="control">
+                        <input name="grade" class="input" type="number" placeholder="请输入年级">
+                    </div>
+                    <p class="help">仅为数字，高一为1，高二为2，高三为3</p>
+                </div>
+                <div class="field">
+                    <label class="label">班级</label>
+                    <div class="control">
+                        <input name="class" class="input" type="number" placeholder="请输入班级">
+                    </div>
+                    <p class="help">仅为数字，一班为1，以此类推</p>
+                </div>
+            </section>
+            <footer class="modal-card-foot">
+                <button class="button is-success is-fullwidth" lay-submit lay-filter="RegisterForm">注册</button>
+            </footer>
+        </div>
+    </div>
+</div>
 <nav class="navbar" role="navigation" aria-label="main navigation">
     <div class="navbar-brand">
         <a class="navbar-item" href="/">
@@ -109,7 +164,7 @@
                 </div>
                 {{else}}
                 <div class="buttons">
-                    <a class="button is-primary">
+                    <a class="button is-primary" onclick="document.getElementById('RegisterModal').classList.add('is-active')">
                         <strong>注册</strong>
                     </a>
                     <a class="button is-light" onclick="document.getElementById('LoginModal').classList.add('is-active')">
@@ -139,7 +194,6 @@
     layui.use('form', function(){
         var form = layui.form;
         form.on('submit(LoginForm)', function(data){
-            console.info("1")
             layui.$.post("/api/login",data.field,function (res,status){
                 if(res.status === "ok")
                 {
@@ -153,6 +207,15 @@
                     layer.msg(res.message,{icon:2})
                 }
             })
+            return false;
+        });
+    });
+</script>
+<script>
+    layui.use('form', function(){
+        var form = layui.form;
+        form.on('submit(RegisterForm)', function(data){
+            console.info(data.field)
             return false;
         });
     });
