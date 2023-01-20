@@ -26,7 +26,7 @@ func InitDatabase() {
 		os.Exit(1)
 	}
 	DatabaseEngine.SetMapper(names.GonicMapper{})
-	err = DatabaseEngine.Sync2(new(UserModel), new(SettingModel))
+	err = DatabaseEngine.Sync2(new(UserModel), new(SettingModel), new(ApplyModel))
 	if err != nil {
 		logger.ConsoleLogger.Errorln("同步数据库模型失败！", err.Error())
 		logger.FileLogger.Errorln("同步数据库模型失败！", err.Error())

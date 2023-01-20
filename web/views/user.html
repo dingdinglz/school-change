@@ -1,0 +1,139 @@
+{{if .User_login}}
+{{if eq .User_id .View_ID}}
+<div class="file has-name is-fullwidth">
+    <label class="file-label">
+            <span class="file-cta">
+      <span class="file-icon">
+          <ion-icon name="share-outline"></ion-icon>
+      </span>
+      <span class="file-label" id="uploadAvatar">
+        选择一个文件...
+      </span>
+    </span>
+        <span class="file-name">
+      上传新头像
+    </span>
+    </label>
+</div>
+<br>
+<div class="layui-form">
+    <div class="field">
+        <label class="label">老密码</label>
+        <div class="control">
+            <input class="input" type="password" placeholder="请输入老密码" name="oldpassword">
+        </div>
+    </div>
+    <div class="field">
+        <label class="label">新密码</label>
+        <div class="control">
+            <input class="input" type="password" placeholder="请输入新密码" name="newpassword">
+        </div>
+    </div>
+    <div class="field">
+        <label class="label">重复新密码</label>
+        <div class="control">
+            <input class="input" type="password" placeholder="请再次输入新密码" name="newpasswordagain">
+        </div>
+    </div>
+    <div class="field is-grouped">
+        <div class="control">
+            <button class="button is-link" lay-submit lay-filter="updateForm">更新资料</button>
+        </div>
+    </div>
+</div>
+<script>
+    layui.use('upload', function(){
+        var upload = layui.upload;
+
+        //执行实例
+        var uploadInst = upload.render({
+            elem: '#uploadAvatar' //绑定元素
+            ,url: '/api/upload/avatar' //上传接口
+            ,done: function(res){
+                if (res.status === "ok")
+                {
+                    layer.msg(res.message,{icon:1})
+                }
+                else
+                {
+                    layer.msg(res.message,{icon:2})
+                }
+            }
+        });
+    });
+    layui.use('form', function(){
+        var form = layui.form;
+
+        //提交
+        form.on('submit(updateForm)', function(data){
+            layui.$.post("/api/update/user",data.field,function (res,status){
+                if(res.status === "ok")
+                {
+                    layer.msg(res.message,{icon:1})
+                    setTimeout(()=>{
+                        window.location.href = '/';
+                    },3000);
+                }
+                else
+                {
+                    layer.msg(res.message,{icon:2})
+                }
+            })
+            return false;
+        });
+    });
+</script>
+{{else}}
+<div id="app">
+    <div class="card">
+        <div class="card-content">
+            <div class="media">
+                <div class="media-left">
+                    <figure class="image is-48x48">
+                        <img id="AvatarImg" src='/avatar/[avatar]' alt="头像">
+                    </figure>
+                </div>
+                <div class="media-content">
+                    <p class="title is-4">{{"{{"}}u.Realname{{"}}"}}</p>
+                    <p class="subtitle is-6">高{{"{{"}}u.Grade{{"}}"}} {{"{{"}}u.Class{{"}}"}}班</p>
+                </div>
+            </div>
+            <div class="content">
+                <button class="button is-primary">私聊联系</button>
+            </div>
+        </div>
+    </div>
+</div>
+<script>
+    const {createApp} = Vue;
+    createApp({
+        data() {
+            return {
+                u: ''
+            }
+        },
+        mounted() {
+            var that = this;
+            window.layui.$.get('/api/get/user?id={{.View_ID}}',function (res,status){
+                if(res.status === "ok")
+                {
+                    that.u = res.data.user;
+                    document.getElementById("AvatarImg").setAttribute('src',document.getElementById("AvatarImg").getAttribute('src').replaceAll('[avatar]',that.u.Username));
+                }
+                else
+                {
+                    window.layer.msg(res.message,{icon:2})
+                }
+            })
+        }
+    }).mount("#app");
+</script>
+{{end}}
+{{else}}
+<script>
+    layer.msg("请先登录！",{icon:3});
+    setTimeout(()=>{
+        window.location.href = "/";
+    },3000);
+</script>
+{{end}}

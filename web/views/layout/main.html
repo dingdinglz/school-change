@@ -10,7 +10,9 @@
     <title>校园旧物交换平台</title>
 </head>
 <body>
+<script src="https://unpkg.com/ionicons@5.5.2/dist/ionicons/ionicons.js"></script>
 <script src="/layui/layui.js"></script>
+<script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
 <div class="modal" id="LoginModal">
     <div class="modal-background"></div>
     <div class="modal-card">
@@ -43,7 +45,7 @@
     <div class="modal-background"></div>
     <div class="modal-card">
         <header class="modal-card-head">
-            <p class="modal-card-title">注册</p>
+            <p class="modal-card-title">注册(窗口显示不全请缩小界面比例)</p>
             <button class="delete" aria-label="close" onclick="document.getElementById('RegisterModal').classList.remove('is-active')"></button>
         </header>
         <div class="layui-form">
@@ -148,7 +150,7 @@
                     </a>
 
                     <div class="navbar-dropdown">
-                        <a class="navbar-item">
+                        <a class="navbar-item" href="/user/{{.User_id}}">
                             资料
                         </a>
                         {{if gt .User_level 1}}
@@ -215,7 +217,17 @@
     layui.use('form', function(){
         var form = layui.form;
         form.on('submit(RegisterForm)', function(data){
-            console.info(data.field)
+            layui.$.post("/api/register",data.field,function (res,status){
+                if (res.status === "ok")
+                {
+                    document.getElementById("RegisterModal").classList.remove("is-active");
+                    layer.msg(res.message,{icon:1})
+                }
+                else
+                {
+                    layer.msg(res.message,{icon:2})
+                }
+            })
             return false;
         });
     });

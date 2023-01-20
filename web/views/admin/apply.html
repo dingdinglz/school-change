@@ -1,0 +1,84 @@
+<div id="app">
+  <table class="layui-table">
+    <colgroup>
+      <col width="15%">
+      <col width="10%">
+      <col width="5%">
+      <col width="5%">
+      <col width="20%">
+      <col>
+    </colgroup>
+    <thead>
+    <tr>
+      <th>用户名</th>
+      <th>真实姓名</th>
+      <th>年级</th>
+      <th>班级</th>
+      <th>IP</th>
+      <th>操作</th>
+    </tr>
+    </thead>
+    <tbody>
+    <tr v-for="i in AppliesData">
+      <td>{{"{{"}}i.Username{{"}}"}}</td>
+      <td>{{"{{"}}i.Realname{{"}}"}}</td>
+      <td>{{"{{"}}i.Grade{{"}}"}}</td>
+      <td>{{"{{"}}i.Class{{"}}"}}</td>
+      <td>{{"{{"}}i.Ip{{"}}"}}</td>
+      <td>
+        <button class="layui-btn layui-btn-normal" v-on:click="PassUser(i.Ip)">通过</button>
+        <button class="layui-btn layui-btn-danger" v-on:click="StopUser(i.Ip)">拒绝</button>
+      </td>
+    </tr>
+    </tbody>
+  </table>
+</div>
+<script>
+  const {createApp} = Vue;
+  createApp({
+    data() {
+      return {
+        AppliesData: []
+      }
+    },
+    methods: {
+      RefreshApplyData() {
+        var that = this;
+        window.layui.$.get('/admin/api/get/applies',function (res,status){
+          that.AppliesData = res.data.applies;
+        })
+      },
+      PassUser(ip) {
+        var that = this;
+        window.layui.$.post('/admin/api/apply/pass',{ip:ip},function (res,status){
+          if (res.status === "ok")
+          {
+            that.RefreshApplyData();
+            window.layer.msg(res.message,{icon:1})
+          }
+          else
+          {
+            window.layer.msg(res.message,{icon:2})
+          }
+        })
+      },
+      StopUser(ip) {
+        var that = this;
+        window.layui.$.post('/admin/api/apply/stop',{ip:ip},function (res,status){
+          if (res.status === "ok")
+          {
+            that.RefreshApplyData();
+            window.layer.msg(res.message,{icon:1})
+          }
+          else
+          {
+            window.layer.msg(res.message,{icon:2})
+          }
+        })
+      }
+    },
+    mounted() {
+      this.RefreshApplyData();
+    }
+  }).mount('#app');
+</script>

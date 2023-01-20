@@ -54,10 +54,21 @@ func MakeViewMap(c *fiber.Ctx) map[string]interface{} {
 func BindRoutes() {
 	WebServer.Get("/", indexRoute)
 	WebServer.Get("/avatar/:username", avatarRoute)
+	WebServer.Get("/user/:id", userRoute)
 
 	apiRoute := WebServer.Group("/api")
 	apiRoute.Post("/login", apiLoginRoute)
 	apiRoute.Get("/logout", apiLogoutRoute)
+	apiRoute.Post("/register", apiRegisterUserRoute)
+
+	apiGetRoute := apiRoute.Group("/get")
+	apiGetRoute.Get("/user", apiGetUserInfo)
+
+	apiUploadRoute := apiRoute.Group("/upload")
+	apiUploadRoute.Post("/avatar", apiUploadAvatar)
+
+	apiUpdateRoute := apiRoute.Group("/update")
+	apiUpdateRoute.Post("/user", apiUpdateUser)
 
 	adminRoute := WebServer.Group("/admin")
 	adminRoute.Use(middleAdminRoute)
@@ -65,11 +76,15 @@ func BindRoutes() {
 		return ctx.Redirect("/admin/user/manage")
 	})
 	adminRoute.Get("/user/manage", adminUserManageRoute)
+	adminRoute.Get("/user/apply", adminUserApplyRoute)
 
 	adminApiRoute := adminRoute.Group("/api")
+	adminApiRoute.Post("/apply/pass", adminApiApplyPass)
+	adminApiRoute.Post("/apply/stop", adminApiApplyStop)
 
 	adminApiGetRoute := adminApiRoute.Group("/get")
 	adminApiGetRoute.Post("/users", adminApiGetUsers)
+	adminApiGetRoute.Get("/applies", adminApiGetApplies)
 
 	adminApiDeleteRoute := adminApiRoute.Group("/delete")
 	adminApiDeleteRoute.Post("/user", adminApiDeleteUserRoute)
@@ -254,4 +269,140 @@ func adminApiCreateUser(ctx *fiber.Ctx) error {
 		return ctx.JSON(MakeApiResMap(false, "创建用户失败！"+err.Error()))
 	}
 	return ctx.JSON(MakeApiResMap(true, "创建成功！"))
+}
+
+// apiRegisterUserRoute 用户注册api
+func apiRegisterUserRoute(ctx *fiber.Ctx) error {
+	username := ctx.FormValue("username", "")
+	password := ctx.FormValue("password", "")
+	grade := ctx.FormValue("grade", "")
+	class := ctx.FormValue("class", "")
+	realname := ctx.FormValue("realname", "")
+	ip := ctx.IP()
+	if username == "" || password == "" || grade == "" || class == "" || realname == "" {
+		return ctx.JSON(MakeApiResMap(false, "存在字段为空！"))
+	}
+	_, e := database.UserCheckCreateAble(username, password, 1, tools.StringToInt(class), tools.StringToInt(grade))
+	if e != nil {
+		return ctx.JSON(MakeApiResMap(false, e.Error()))
+	}
+	if database.UserApplyHaveIP(ip) {
+		return ctx.JSON(MakeApiResMap(false, "该ip存在账号申请！"))
+	}
+	database.UserApplyCreate(username, password, ip, tools.StringToInt(grade), tools.StringToInt(class), realname)
+	return ctx.JSON(MakeApiResMap(true, "已申请！请等待审核！"))
+}
+
+// adminApiGetApplies 取所有apply
+func adminApiGetApplies(ctx *fiber.Ctx) error {
+	var appliesData []database.ApplyModel
+	_ = database.DatabaseEngine.Table(new(database.ApplyModel)).Find(&appliesData)
+	return ctx.JSON(MakeApiResMapWithData(true, "获取成功！", fiber.Map{"applies": appliesData}))
+}
+
+// adminUserApplyRoute 用户申请route
+func adminUserApplyRoute(ctx *fiber.Ctx) error {
+	return ctx.Render("admin/apply", MakeViewMap(ctx), "layout/admin")
+}
+
+// adminApiApplyPass 通过用户申请
+func adminApiApplyPass(ctx *fiber.Ctx) error {
+	ip := ctx.FormValue("ip", "")
+	if ip == "" {
+		return ctx.JSON(MakeApiResMap(false, "存在字段为空！"))
+	}
+	e := database.UserApplyPass(ip)
+	if e != nil {
+		return ctx.JSON(MakeApiResMap(false, e.Error()))
+	}
+	return ctx.JSON(MakeApiResMap(true, "通过成功！"))
+}
+
+// adminApiApplyStop 拒绝用户申请
+func adminApiApplyStop(ctx *fiber.Ctx) error {
+	ip := ctx.FormValue("ip", "")
+	if ip == "" {
+		return ctx.JSON(MakeApiResMap(false, "存在字段为空！"))
+	}
+	database.UserApplyStop(ip)
+	return ctx.JSON(MakeApiResMap(true, "拒绝成功！"))
+}
+
+// userRoute 用户资料route
+func userRoute(ctx *fiber.Ctx) error {
+	viewMap := MakeViewMap(ctx)
+	viewMap["View_ID"] = tools.StringToInt(ctx.Params("id", "0"))
+	return ctx.Render("user", viewMap, "layout/main")
+}
+
+// apiGetUserInfo 获取用户信息
+func apiGetUserInfo(ctx *fiber.Ctx) error {
+	id := ctx.Query("id", "")
+	if id == "" {
+		return ctx.JSON(MakeApiResMap(false, "id为空！"))
+	}
+	if !database.UserHaveUserByID(tools.StringToInt(id)) {
+		return ctx.JSON(MakeApiResMap(false, "用户不存在！"))
+	}
+	var u database.UserModel
+	_, _ = database.DatabaseEngine.Table(new(database.UserModel)).Where("id = ?", tools.StringToInt(id)).Get(&u)
+	u.Ip = ""
+	u.Password = ""
+	return ctx.JSON(MakeApiResMapWithData(true, "获取成功！", fiber.Map{"user": u}))
+}
+
+// apiUploadAvatar 上传新头像
+func apiUploadAvatar(ctx *fiber.Ctx) error {
+	s, _ := SessionStore.Get(ctx)
+	UserUsername := s.Get("user_username")
+	UserPassword := s.Get("user_password")
+	UserLevel := s.Get("user_level")
+	UserID := s.Get("user_id")
+	if UserUsername == nil || UserPassword == nil || UserLevel == nil {
+		return ctx.JSON(MakeApiResMap(false, "请先登录！"))
+	} else {
+		UserLevel_i, _ := strconv.Atoi(fmt.Sprintf("%s", UserLevel))
+		UserID_i, _ := strconv.Atoi(fmt.Sprintf("%s", UserID))
+		// logger.ConsoleLogger.Debugln(fmt.Sprintf("%s", UserUsername), fmt.Sprintf("%s", UserPassword), UserLevel_i)
+		if database.UserCheck(fmt.Sprintf("%s", UserUsername), fmt.Sprintf("%s", UserPassword), UserLevel_i, UserID_i) {
+			rootPath, _ := os.Getwd()
+			f, _ := ctx.FormFile("file")
+			_ = ctx.SaveFile(f, filepath.Join(rootPath, "data", "avatar", fmt.Sprintf("%s", UserUsername)+".png"))
+			return ctx.JSON(MakeApiResMap(true, "上传成功！"))
+		}
+	}
+	return ctx.JSON(MakeApiResMap(false, "请重新登录！"))
+}
+
+// apiUpdateUser 更新用户资料
+func apiUpdateUser(ctx *fiber.Ctx) error {
+	s, _ := SessionStore.Get(ctx)
+	UserUsername := s.Get("user_username")
+	UserPassword := s.Get("user_password")
+	UserLevel := s.Get("user_level")
+	UserID := s.Get("user_id")
+	if UserUsername == nil || UserPassword == nil || UserLevel == nil {
+		return ctx.JSON(MakeApiResMap(false, "请先登录！"))
+	} else {
+		UserLevel_i, _ := strconv.Atoi(fmt.Sprintf("%s", UserLevel))
+		UserID_i, _ := strconv.Atoi(fmt.Sprintf("%s", UserID))
+		// logger.ConsoleLogger.Debugln(fmt.Sprintf("%s", UserUsername), fmt.Sprintf("%s", UserPassword), UserLevel_i)
+		if database.UserCheck(fmt.Sprintf("%s", UserUsername), fmt.Sprintf("%s", UserPassword), UserLevel_i, UserID_i) {
+			old := ctx.FormValue("oldpassword", "")
+			newP := ctx.FormValue("newpassword", "")
+			newPagain := ctx.FormValue("newpasswordagain", "")
+			if old == "" || newP == "" || newPagain == "" {
+				return ctx.JSON(MakeApiResMap(false, "存在字段为空！"))
+			}
+			if tools.MD5(old) != fmt.Sprintf("%s", UserPassword) {
+				return ctx.JSON(MakeApiResMap(false, "老密码错误！"))
+			}
+			if newP != newPagain {
+				return ctx.JSON(MakeApiResMap(false, "新密码两次输入不一致！"))
+			}
+			_, _ = database.DatabaseEngine.Table(new(database.UserModel)).Where("id = ?", UserID_i).Update(&database.UserModel{Password: tools.MD5(newP)})
+			return ctx.JSON(MakeApiResMap(true, "更新成功！"))
+		}
+	}
+	return ctx.JSON(MakeApiResMap(false, "请重新登录！"))
 }
