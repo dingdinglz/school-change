@@ -1,1 +1,39 @@
-<h1 class="title">正在开发中...</h1>
+{{range .Changes}}
+<div class="columns">
+    {{range .}}
+    <div class="column">
+        <div class="card">
+            <div class="card-image">
+                <figure class="image is-4by3">
+                    <img src="/picture/change/{{.ID}}/1" alt="封面图片">
+                </figure>
+            </div>
+            <div class="card-content">
+                <div class="media">
+                    <div class="media-left">
+                        <figure class="image is-48x48">
+                            <img src="/avatar/{{User_GetUsernameByID .User}}" alt="用户头像">
+                        </figure>
+                    </div>
+                    <div class="media-content">
+                        <p class="title is-4">{{.Title}}</p>
+                        <p class="subtitle is-6" onclick="window.location.href='/user/{{.User}}'">@{{User_GetRealnameByID .User}}</p>
+                    </div>
+                </div>
+
+                <div class="content">
+                    {{.Description}}
+                    <br>
+                    分类：<span class="tag is-info">{{Subject_GetNameByID .Subject}}</span>
+                    <br>
+                    我想要：{{.Want}}
+                    <br>
+                    <br>
+                    <button class="button is-primary is-fullwidth" onclick="window.location.href='/change/id/{{.ID}}'">查看详情</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    {{end}}
+</div>
+{{end}}

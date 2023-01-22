@@ -12,4 +12,5 @@ func InitPath() {
 	tools.CreatePathIfNotExist(filepath.Join(rootPath, "log"))
 	tools.CreatePathIfNotExist(filepath.Join(rootPath, "data"))
 	tools.CreatePathIfNotExist(filepath.Join(rootPath, "data", "avatar"))
+	tools.CreatePathIfNotExist(filepath.Join(rootPath, "data", "change_pic"))
 }

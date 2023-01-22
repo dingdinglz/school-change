@@ -7,3 +7,10 @@ func SubjectCreateNew(name string, description string) {
 		Description: description,
 	})
 }
+
+// SubjectGetNameByID 取对应subject的name
+func SubjectGetNameByID(id int) string {
+	var i SubjectModel
+	_, _ = DatabaseEngine.Table(new(SubjectModel)).Where("id = ?", id).Get(&i)
+	return i.Name
+}

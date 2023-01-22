@@ -55,10 +55,12 @@ func BindRoutes() {
 	WebServer.Get("/", indexRoute)
 	WebServer.Get("/avatar/:username", avatarRoute)
 	WebServer.Get("/user/:id", userRoute)
+	WebServer.Get("/picture/change/:change/:which", changePictureRoute)
 
 	changeRoute := WebServer.Group("/change")
 	changeRoute.Use(middleMustLogin)
 	changeRoute.Get("/new", newChangeRoute)
+	changeRoute.Get("/my", myChangeRoute)
 
 	apiRoute := WebServer.Group("/api")
 	apiRoute.Post("/login", apiLoginRoute)
@@ -111,7 +113,19 @@ func BindRoutes() {
 
 // indexRoute 主页路由
 func indexRoute(ctx *fiber.Ctx) error {
-	return ctx.Render("index", MakeViewMap(ctx), "layout/main")
+	viewMap := MakeViewMap(ctx)
+	var allChanges []database.ChangeModel
+	_ = database.DatabaseEngine.Table(new(database.ChangeModel)).Where("state = ?", 1).Desc("time").Find(&allChanges)
+	showChanges := [][]database.ChangeModel{}
+	for i := 1; i <= len(allChanges); i += 4 {
+		if i+4 > len(allChanges) {
+			showChanges = append(showChanges, allChanges[(i-1):])
+		} else {
+			showChanges = append(showChanges, allChanges[(i-1):i+3])
+		}
+	}
+	viewMap["Changes"] = showChanges
+	return ctx.Render("index", viewMap, "layout/main")
 }
 
 // MakeApiResMap 生成返回的json
@@ -489,4 +503,27 @@ func apiCreateChange(ctx *fiber.Ctx) error {
 	}
 	database.ChangeCreateNew(title, description, tools.StringToInt(subject), tools.StringToInt(userIDStr), want)
 	return ctx.JSON(MakeApiResMap(true, "发布成功！"))
+}
+
+// myChangeRoute 我的交换路由
+func myChangeRoute(ctx *fiber.Ctx) error {
+	s, _ := SessionStore.Get(ctx)
+	userID := s.Get("user_id")
+	userIDStr := tools.InterfaceToString(userID)
+	viewMap := MakeViewMap(ctx)
+	var myChanges []database.ChangeModel
+	_ = database.DatabaseEngine.Table(new(database.ChangeModel)).Where("user = ?", tools.StringToInt(userIDStr)).Desc("time").Find(&myChanges)
+	viewMap["Changes"] = myChanges
+	return ctx.Render("showchange", viewMap, "layout/main")
+}
+
+// changePictureRoute 交换图片路由
+func changePictureRoute(ctx *fiber.Ctx) error {
+	change := ctx.Params("change", "")
+	which := ctx.Params("which", "")
+	rootPath, _ := os.Getwd()
+	if !tools.IsFileExist(filepath.Join(rootPath, "data", "change_pic", change, which+".png")) {
+		return ctx.SendFile(filepath.Join(rootPath, "web", "picture", "change.png"))
+	}
+	return ctx.SendFile(filepath.Join(rootPath, "data", "change_pic", change, which+".png"))
 }

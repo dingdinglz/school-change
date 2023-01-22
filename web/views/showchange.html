@@ -1,0 +1,28 @@
+<table class="table is-fullwidth">
+    <thead>
+    <tr>
+        <th width="30%">标题</th>
+        <th width="20%">交换状态</th>
+        <th width="20%">分类</th>
+        <th></th>
+    </tr>
+    </thead>
+    <tbody>
+    {{range .Changes}}
+        <tr>
+            <td>{{.Title}}</td>
+            {{if eq .State 1}}
+            <td><span class="tag is-dark">未开始</span></td>
+            {{end}}
+            {{if eq .State 2}}
+            <td><span class="tag is-primary">进行中</span></td>
+            {{end}}
+            {{if eq .State 3}}
+            <td><span class="tag is-light">已结束</span></td>
+            {{end}}
+            <td>{{Subject_GetNameByID .Subject}}</td>
+            <td><button class="button is-primary" onclick="window.location.href='/change/id/{{.ID}}'">查看详情</button></td>
+        </tr>
+    {{end}}
+    </tbody>
+</table>
