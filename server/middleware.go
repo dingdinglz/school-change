@@ -40,3 +40,31 @@ func middleAdminRoute(ctx *fiber.Ctx) error {
 	}
 	return ctx.Redirect("/")
 }
+
+// middleMustLogin 不登录就返回首页
+func middleMustLogin(ctx *fiber.Ctx) error {
+	s, _ := SessionStore.Get(ctx)
+	UserUsername := s.Get("user_username")
+	UserPassword := s.Get("user_password")
+	UserLevel := s.Get("user_level")
+	UserID := s.Get("user_id")
+	if UserUsername == nil || UserPassword == nil || UserLevel == nil {
+		s.Set("message_warning", "请先登录！")
+		_ = s.Save()
+		return ctx.Redirect("/")
+	} else {
+		UserLevel_i, _ := strconv.Atoi(fmt.Sprintf("%s", UserLevel))
+		UserID_i, _ := strconv.Atoi(fmt.Sprintf("%s", UserID))
+		if database.UserCheck(fmt.Sprintf("%s", UserUsername), fmt.Sprintf("%s", UserPassword), UserLevel_i, UserID_i) {
+			return ctx.Next()
+		} else {
+			s.Set("message_warning", "登录信息有误！请重新登录！")
+			s.Delete("user_username")
+			s.Delete("user_password")
+			s.Delete("user_level")
+			s.Delete("user_id")
+			_ = s.Save()
+		}
+	}
+	return ctx.Redirect("/")
+}

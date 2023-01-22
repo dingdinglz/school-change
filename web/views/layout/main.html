@@ -151,11 +151,14 @@
 
                     <div class="navbar-dropdown">
                         <a class="navbar-item" href="/user/{{.User_id}}">
-                            资料
+                            <ion-icon name="albums-outline"></ion-icon>资料
+                        </a>
+                        <a class="navbar-item" href="/change/new">
+                            <ion-icon name="add-circle-outline"></ion-icon>发布交换
                         </a>
                         {{if gt .User_level 1}}
                         <a class="navbar-item" href="/admin">
-                            管理后台
+                            <ion-icon name="settings-outline"></ion-icon>管理后台
                         </a>
                         {{end}}
                         <hr class="navbar-divider">

@@ -56,6 +56,10 @@ func BindRoutes() {
 	WebServer.Get("/avatar/:username", avatarRoute)
 	WebServer.Get("/user/:id", userRoute)
 
+	changeRoute := WebServer.Group("/change")
+	changeRoute.Use(middleMustLogin)
+	changeRoute.Get("/new", newChangeRoute)
+
 	apiRoute := WebServer.Group("/api")
 	apiRoute.Post("/login", apiLoginRoute)
 	apiRoute.Get("/logout", apiLogoutRoute)
@@ -70,6 +74,9 @@ func BindRoutes() {
 	apiUpdateRoute := apiRoute.Group("/update")
 	apiUpdateRoute.Post("/user", apiUpdateUser)
 
+	apiCreateRoute := apiRoute.Group("/create")
+	apiCreateRoute.Post("/change", apiCreateChange)
+
 	adminRoute := WebServer.Group("/admin")
 	adminRoute.Use(middleAdminRoute)
 	adminRoute.Get("/", func(ctx *fiber.Ctx) error {
@@ -77,6 +84,7 @@ func BindRoutes() {
 	})
 	adminRoute.Get("/user/manage", adminUserManageRoute)
 	adminRoute.Get("/user/apply", adminUserApplyRoute)
+	adminRoute.Get("/change/subject", adminChangeSubjectRoute)
 
 	adminApiRoute := adminRoute.Group("/api")
 	adminApiRoute.Post("/apply/pass", adminApiApplyPass)
@@ -85,15 +93,19 @@ func BindRoutes() {
 	adminApiGetRoute := adminApiRoute.Group("/get")
 	adminApiGetRoute.Post("/users", adminApiGetUsers)
 	adminApiGetRoute.Get("/applies", adminApiGetApplies)
+	adminApiGetRoute.Get("/subjects", adminApiGetSubjects)
 
 	adminApiDeleteRoute := adminApiRoute.Group("/delete")
 	adminApiDeleteRoute.Post("/user", adminApiDeleteUserRoute)
+	adminApiDeleteRoute.Post("/subject", adminApiDeleteSubject)
 
 	adminApiUpdateRoute := adminApiRoute.Group("/update")
 	adminApiUpdateRoute.Post("/user", adminApiUpdateUserRoute)
+	adminApiUpdateRoute.Post("/subject", adminApiUpdateSubject)
 
 	adminApiCreateRoute := adminApiRoute.Group("/create")
 	adminApiCreateRoute.Post("/user", adminApiCreateUser)
+	adminApiCreateRoute.Post("/subject", adminApiCreateSubject)
 
 }
 
@@ -405,4 +417,76 @@ func apiUpdateUser(ctx *fiber.Ctx) error {
 		}
 	}
 	return ctx.JSON(MakeApiResMap(false, "请重新登录！"))
+}
+
+// adminApiGetSubjects 取subject列表
+func adminApiGetSubjects(ctx *fiber.Ctx) error {
+	var subjects []database.SubjectModel
+	_ = database.DatabaseEngine.Table(new(database.SubjectModel)).Find(&subjects)
+	return ctx.JSON(MakeApiResMapWithData(true, "获取成功！", fiber.Map{"subjects": subjects}))
+}
+
+// adminApiCreateSubject 创建subject
+func adminApiCreateSubject(ctx *fiber.Ctx) error {
+	name := ctx.FormValue("name", "")
+	description := ctx.FormValue("description", "")
+	if name == "" || description == "" {
+		return ctx.JSON(MakeApiResMap(false, "存在字段为空！"))
+	}
+	database.SubjectCreateNew(name, description)
+	return ctx.JSON(MakeApiResMap(true, "创建成功！"))
+}
+
+// adminApiDeleteSubject 删除subject
+func adminApiDeleteSubject(ctx *fiber.Ctx) error {
+	id := ctx.FormValue("id", "")
+	if id == "" {
+		return ctx.JSON(MakeApiResMap(false, "存在字段为空！"))
+	}
+	_, _ = database.DatabaseEngine.Table(new(database.SubjectModel)).Where("id = ?", tools.StringToInt(id)).Delete()
+	return ctx.JSON(MakeApiResMap(true, "删除成功！"))
+}
+
+// adminApiUpdateSubject 更新subject
+func adminApiUpdateSubject(ctx *fiber.Ctx) error {
+	id := ctx.FormValue("id", "")
+	description := ctx.FormValue("description", "")
+	if id == "" || description == "" {
+		return ctx.JSON(MakeApiResMap(false, "存在字段为空！"))
+	}
+	_, _ = database.DatabaseEngine.Table(new(database.SubjectModel)).Where("id = ?", tools.StringToInt(id)).Update(&database.SubjectModel{Description: description})
+	return ctx.JSON(MakeApiResMap(true, "更新成功！"))
+}
+
+// adminChangeSubjectRoute 后台管理subject路由
+func adminChangeSubjectRoute(ctx *fiber.Ctx) error {
+	return ctx.Render("admin/subject", MakeViewMap(ctx), "layout/admin")
+}
+
+// newChangeRoute 新建change
+func newChangeRoute(ctx *fiber.Ctx) error {
+	viewMap := MakeViewMap(ctx)
+	var subjects []database.SubjectModel
+	_ = database.DatabaseEngine.Table(new(database.SubjectModel)).Find(&subjects)
+	viewMap["Subjects"] = subjects
+	return ctx.Render("newchange", viewMap, "layout/main")
+}
+
+// apiCreateChange 创建change
+func apiCreateChange(ctx *fiber.Ctx) error {
+	title := ctx.FormValue("title", "")
+	description := ctx.FormValue("description", "")
+	subject := ctx.FormValue("subject", "")
+	want := ctx.FormValue("want", "")
+	if title == "" || description == "" || subject == "" || want == "" {
+		return ctx.JSON(MakeApiResMap(false, "存在字段为空！"))
+	}
+	s, _ := SessionStore.Get(ctx)
+	userID := s.Get("user_id")
+	userIDStr := tools.InterfaceToString(userID)
+	if !database.ChangeCheckTime(tools.StringToInt(userIDStr)) {
+		return ctx.JSON(MakeApiResMap(false, "距离上次创建不足半小时！"))
+	}
+	database.ChangeCreateNew(title, description, tools.StringToInt(subject), tools.StringToInt(userIDStr), want)
+	return ctx.JSON(MakeApiResMap(true, "发布成功！"))
 }

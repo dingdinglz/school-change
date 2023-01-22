@@ -1,0 +1,135 @@
+<div id="CreateNewSubjectModal" style="display: none">
+    <div class="layui-form" style="margin: 5px">
+        <div class="layui-form-item">
+            <label class="layui-form-label">分类名</label>
+            <div class="layui-input-block">
+                <input type="text" name="name" required  lay-verify="required" placeholder="请输入分类名" autocomplete="off" class="layui-input">
+            </div>
+        </div>
+        <div class="layui-form-item">
+            <label class="layui-form-label">分类描述</label>
+            <div class="layui-input-block">
+                <input type="text" name="description" required  lay-verify="required" placeholder="请输入分类描述" autocomplete="off" class="layui-input">
+            </div>
+        </div>
+        <div class="layui-form-item">
+            <div class="layui-input-block">
+                <button class="layui-btn layui-btn-fluid" lay-submit lay-filter="createSubjectForm">立即提交</button>
+            </div>
+        </div>
+    </div>
+</div>
+<div id="app">
+    <button class="layui-btn" v-on:click="OpenCreateSubjectModal">创建新分类</button>
+    <br>
+    <table class="layui-table">
+        <colgroup>
+            <col width="10%">
+            <col width="70%">
+            <col>
+        </colgroup>
+        <thead>
+        <tr>
+            <th>分类名</th>
+            <th>分类描述</th>
+            <th>操作</th>
+        </tr>
+        </thead>
+        <tbody>
+        <tr v-for="i in SubjectsData">
+            <td>{{"{{"}}i.Name{{"}}"}}</td>
+            <td>{{"{{"}}i.Description{{"}}"}}</td>
+            <td>
+                <button class="layui-btn layui-btn-normal" v-on:click="UpdateSubject(i.ID)">更改</button>
+                <button class="layui-btn layui-btn-danger" v-on:click="DeleteSubject(i.ID)">删除</button>
+            </td>
+        </tr>
+        </tbody>
+    </table>
+</div>
+<script>
+    const {createApp} = Vue;
+    createApp({
+        data() {
+          return {
+              SubjectsData: [],
+              CreateSubjectModalID:0
+          }
+        },
+        methods: {
+            RefreshSubjectData() {
+                var that = this;
+                window.layui.$.get('/admin/api/get/subjects',function (res){
+                    that.SubjectsData = res.data.subjects;
+                })
+            },
+            OpenCreateSubjectModal() {
+                var that = this;
+                this.CreateSubjectModalID = window.layer.open({
+                    type:1,
+                    title:"创建新分类",
+                    content:document.getElementById("CreateNewSubjectModal").innerHTML
+                });
+                window.layui.use('form', function(){
+                    var form = window.layui.form;
+                    form.on('submit(createSubjectForm)', function(data){
+                        window.layui.$.post("/admin/api/create/subject",data.field,function (res) {
+                            if(res.status === "ok")
+                            {
+                                window.layer.close(that.CreateSubjectModalID);
+                                window.layer.msg(res.message,{icon:1});
+                                that.RefreshSubjectData();
+                            }
+                            else
+                            {
+                                window.layer.msg(res.message,{icon:2});
+                            }
+                        })
+                        return false;
+                    });
+                });
+            },
+            DeleteSubject(id)
+            {
+                var that = this;
+                window.layui.$.post("/admin/api/delete/subject",{id:id},function (res){
+                    if(res.status==="ok")
+                    {
+                        window.layer.msg(res.message,{icon:1});
+                        that.RefreshSubjectData();
+                    }
+                    else
+                    {
+                        window.layer.msg(res.message,{icon:2});
+                    }
+                })
+            },
+            UpdateSubject(id)
+            {
+                var that = this;
+                window.layer.prompt({
+                    formType: 0,
+                    value: '新描述',
+                    title: '请输入新的分类描述',
+                }, function(value, index, elm){
+                    window.layui.$.post("/admin/api/update/subject",{id:id,description:value},function (res) {
+                        if (res.status === "ok")
+                        {
+                            window.layer.close(index);
+                            window.layer.msg(res.message,{icon:1});
+                            that.RefreshSubjectData();
+                        }
+                        else
+                        {
+                            window.layer.msg(res.message,{icon:2});
+                        }
+                    })
+                });
+            }
+        },
+        mounted()
+        {
+            this.RefreshSubjectData();
+        }
+    }).mount('#app');
+</script>

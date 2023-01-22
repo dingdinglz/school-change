@@ -1,0 +1,75 @@
+<div class="layui-form">
+  <div style="text-align: right">
+    <button class="button is-primary" lay-submit lay-filter="createChangeForm">发布交换</button>
+  </div>
+  <br>
+  <article class="message is-info">
+    <div class="message-header">
+      <p>说明</p>
+    </div>
+    <div class="message-body">
+      您可以通过本页面创建一个物品交换。<br>
+      创建完毕后您可以在详情界面添加物品图片。<br>
+      交换分为三个阶段：<strong>未开始</strong>、<strong>进行中</strong>、<strong>已结束</strong> <br>
+      交易的进行，需要您使用本站的私聊功能，或者在描述中留下你的联系方式。协商妥当后，确定交换地点(必须为校方指定地点)。标记进行中阶段。待交易完成后，标记已结束即可完成交换。<br>
+      涉及<strong>金额</strong>的交换，请勿提前在线上进行！否则产生的一切后果与校方以及本站无关。<br>
+      想交换的物品若为金额，则视为出售旧物，值可以为100元人民币等。<br>
+      交换之前请务必通过<strong>私聊功能</strong>等其他方式交涉完美。<br>
+      祝您使用愉快！
+    </div>
+  </article>
+  <div class="field">
+    <label class="label">标题</label>
+    <div class="control">
+      <input class="input" type="text" placeholder="请输入标题" name="title">
+    </div>
+    <p class="help">用于展示的标题</p>
+  </div>
+  <div class="field">
+    <label class="label">描述</label>
+    <div class="control">
+      <input class="input" type="text" placeholder="请输入描述" name="description">
+    </div>
+    <p class="help">点开详细信息时的描述，用于描述具体情况和额外信息</p>
+  </div>
+  <div class="field">
+    <label class="label">想要换得的物品</label>
+    <div class="control">
+      <input class="input" type="text" placeholder="请输入想要换得的物品" name="want">
+    </div>
+    <p class="help">若为出售旧物则填写金额，例如：100元人民币</p>
+  </div>
+  <div class="field">
+    <label class="label">物品分类</label>
+    <div class="control">
+      <div class="select">
+        <select name="subject" lay-ignore>
+          {{range .Subjects}}
+          <option value="{{.ID}}">{{.Name}}</option>
+          {{end}}
+        </select>
+      </div>
+    </div>
+  </div>
+</div>
+<script>
+  layui.use('form', function(){
+    var form = layui.form;
+    form.on('submit(createChangeForm)', function(data){
+      layui.$.post("/api/create/change",data.field,function (res) {
+        if(res.status==="ok")
+        {
+          layer.msg(res.message,{icon:1});
+          setTimeout(()=>{
+            window.location.href = '/change/my';
+          },3000);
+        }
+        else
+        {
+          layer.msg(res.message ,{icon:2})
+        }
+      })
+      return false;
+    });
+  });
+</script>

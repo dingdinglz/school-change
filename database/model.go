@@ -40,3 +40,29 @@ type ApplyModel struct {
 func (i *ApplyModel) TableName() string {
 	return "apply"
 }
+
+type SubjectModel struct {
+	ID          int `xorm:"pk autoincr"`
+	Name        string
+	Description string
+}
+
+func (i *SubjectModel) TableName() string {
+	return "subject"
+}
+
+type ChangeModel struct {
+	ID          int `xorm:"pk autoincr"`
+	Time        time.Time
+	User        int
+	Geter       int
+	Subject     int
+	Title       string
+	Description string
+	Want        string
+	State       int // 1 未开始  2 交换中  3 交换结束
+}
+
+func (i *ChangeModel) TableName() string {
+	return "change"
+}
