@@ -1,0 +1,18 @@
+<table class="table is-fullwidth">
+    <thead>
+    <tr>
+        <th width="20%">分类名</th>
+        <th width="70%">介绍</th>
+        <th></th>
+    </tr>
+    </thead>
+    <tbody>
+        {{range .Subjects}}
+        <tr>
+            <td>{{.Name}}</td>
+            <td>{{.Description}}</td>
+            <td><button class="button" onclick="window.location.href='/subject/id/{{.ID}}'">查看全部交换</button></td>
+        </tr>
+        {{end}}
+    </tbody>
+</table>

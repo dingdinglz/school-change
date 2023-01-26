@@ -6,9 +6,11 @@ import (
 	"change/tools"
 	"fmt"
 	"github.com/gofiber/fiber/v2"
+	"io/fs"
 	"os"
 	"path/filepath"
 	"strconv"
+	"strings"
 )
 
 func MakeViewMap(c *fiber.Ctx) map[string]interface{} {
@@ -56,11 +58,22 @@ func BindRoutes() {
 	WebServer.Get("/avatar/:username", avatarRoute)
 	WebServer.Get("/user/:id", userRoute)
 	WebServer.Get("/picture/change/:change/:which", changePictureRoute)
+	WebServer.Get("/subject", subjectRoute)
+	WebServer.Get("/subject/id/:id", subjectAllRoute)
 
 	changeRoute := WebServer.Group("/change")
 	changeRoute.Use(middleMustLogin)
 	changeRoute.Get("/new", newChangeRoute)
 	changeRoute.Get("/my", myChangeRoute)
+	changeRoute.Get("/id/:id", changeSeeRoute)
+	changeRoute.Post("/uploadImage", apiChangeUploadImage)
+	changeRoute.Post("/deleteImage", apiChangeDeleteImage)
+	changeRoute.Post("/delete", apiChangeDelete)
+
+	changeApiRoute := changeRoute.Group("/api")
+
+	changeApiUpdateRoute := changeApiRoute.Group("/update")
+	changeApiUpdateRoute.Post("/changeState", apiUpdateChangeState)
 
 	apiRoute := WebServer.Group("/api")
 	apiRoute.Post("/login", apiLoginRoute)
@@ -499,7 +512,7 @@ func apiCreateChange(ctx *fiber.Ctx) error {
 	userID := s.Get("user_id")
 	userIDStr := tools.InterfaceToString(userID)
 	if !database.ChangeCheckTime(tools.StringToInt(userIDStr)) {
-		return ctx.JSON(MakeApiResMap(false, "距离上次创建不足半小时！"))
+		return ctx.JSON(MakeApiResMap(false, "距离上次创建不足"+strconv.Itoa(config.ConfigData.Limit.Change)+"分钟！"))
 	}
 	database.ChangeCreateNew(title, description, tools.StringToInt(subject), tools.StringToInt(userIDStr), want)
 	return ctx.JSON(MakeApiResMap(true, "发布成功！"))
@@ -526,4 +539,142 @@ func changePictureRoute(ctx *fiber.Ctx) error {
 		return ctx.SendFile(filepath.Join(rootPath, "web", "picture", "change.png"))
 	}
 	return ctx.SendFile(filepath.Join(rootPath, "data", "change_pic", change, which+".png"))
+}
+
+// changeSeeRoute 查看详情route
+func changeSeeRoute(ctx *fiber.Ctx) error {
+	id := ctx.Params("id")
+	idInt := tools.StringToInt(id)
+	var c database.ChangeModel
+	_, _ = database.DatabaseEngine.Table(new(database.ChangeModel)).Where("id = ?", idInt).Get(&c)
+	viewMap := MakeViewMap(ctx)
+	viewMap["Change"] = c
+	rootPath, _ := os.Getwd()
+	imagePath := filepath.Join(rootPath, "data", "change_pic", id)
+	if !tools.IsFileExist(imagePath) {
+		viewMap["Images"] = []fiber.Map{}
+	} else {
+		addImages := []fiber.Map{}
+		_ = filepath.Walk(imagePath, func(path string, info fs.FileInfo, err error) error {
+			if info.IsDir() {
+				return nil
+			}
+			addImages = append(addImages, fiber.Map{"Id": id, "Name": strings.ReplaceAll(filepath.Base(path), ".png", "")})
+			return nil
+		})
+		viewMap["Images"] = addImages
+	}
+	return ctx.Render("seechange", viewMap, "layout/main")
+}
+
+// apiUpdateChangeState 更新状态
+func apiUpdateChangeState(ctx *fiber.Ctx) error {
+	id := ctx.FormValue("id", "")
+	state := ctx.FormValue("state", "")
+	if id == "" || state == "" {
+		return ctx.JSON(MakeApiResMap(false, "存在字段为空！"))
+	}
+	if !database.ChangeHaveByID(tools.StringToInt(id)) {
+		return ctx.JSON(MakeApiResMap(false, "该交换不存在！"))
+	}
+	s, _ := SessionStore.Get(ctx)
+	userID := s.Get("user_id")
+	userIDInt := tools.InterfaceToInt(userID)
+	var c database.ChangeModel
+	_, _ = database.DatabaseEngine.Table(new(database.ChangeModel)).Where("id = ?", tools.StringToInt(id)).Get(&c)
+	if c.User != userIDInt {
+		return ctx.JSON(MakeApiResMap(false, "你无权操作一个不属于你的交换！"))
+	}
+	_, _ = database.DatabaseEngine.Table(new(database.ChangeModel)).Where("id = ?", tools.StringToInt(id)).Update(&database.ChangeModel{State: tools.StringToInt(state)})
+	return ctx.JSON(MakeApiResMap(true, "操作成功！"))
+}
+
+// apiChangeUploadImage 上传change照片
+func apiChangeUploadImage(ctx *fiber.Ctx) error {
+	id := ctx.Query("id", "")
+	if id == "" || !database.ChangeHaveByID(tools.StringToInt(id)) {
+		return ctx.JSON(MakeApiResMap(false, "交换不存在！"))
+	}
+	s, _ := SessionStore.Get(ctx)
+	userID := s.Get("user_id")
+	userIDInt := tools.InterfaceToInt(userID)
+	if !database.ChangeCheckUser(tools.StringToInt(id), userIDInt) {
+		return ctx.JSON(MakeApiResMap(false, "你无权操作一个不属于你的交换！"))
+
+	}
+	rootPath, _ := os.Getwd()
+	if !tools.IsFileExist(filepath.Join(rootPath, "data", "change_pic", id)) {
+		_ = os.Mkdir(filepath.Join(rootPath, "data", "change_pic", id), 0777)
+	}
+	saveName := tools.GetNextPicName(filepath.Join(rootPath, "data", "change_pic", id))
+	f, _ := ctx.FormFile("file")
+	_ = ctx.SaveFile(f, filepath.Join(rootPath, "data", "change_pic", id, saveName))
+	return ctx.JSON(MakeApiResMap(true, "上传成功！"))
+}
+
+func apiChangeDeleteImage(ctx *fiber.Ctx) error {
+	id := ctx.FormValue("id", "")
+	name := ctx.FormValue("name", "")
+	if id == "" || name == "" {
+		return ctx.JSON(MakeApiResMap(false, "存在字段为空！"))
+	}
+	if !database.ChangeHaveByID(tools.StringToInt(id)) {
+		return ctx.JSON(MakeApiResMap(false, "交换不存在！"))
+	}
+	s, _ := SessionStore.Get(ctx)
+	userID := s.Get("user_id")
+	userIDInt := tools.InterfaceToInt(userID)
+	if !database.ChangeCheckUser(tools.StringToInt(id), userIDInt) {
+		return ctx.JSON(MakeApiResMap(false, "你无权操作一个不属于你的交换！"))
+	}
+	rootPath, _ := os.Getwd()
+	if !tools.IsFileExist(filepath.Join(rootPath, "data", "change_pic", id, name+".png")) {
+		return ctx.JSON(MakeApiResMap(false, "图片不存在！"))
+	}
+	_ = os.Remove(filepath.Join(rootPath, "data", "change_pic", id, name+".png"))
+	return ctx.JSON(MakeApiResMap(true, "删除成功！"))
+}
+
+// apiChangeDelete 删除交换
+func apiChangeDelete(ctx *fiber.Ctx) error {
+	id := ctx.FormValue("id", "")
+	if id == "" {
+		return ctx.JSON(MakeApiResMap(false, "存在字段为空！"))
+	}
+	s, _ := SessionStore.Get(ctx)
+	userID := s.Get("user_id")
+	userIDInt := tools.InterfaceToInt(userID)
+	if !database.ChangeCheckUser(tools.StringToInt(id), userIDInt) {
+		return ctx.JSON(MakeApiResMap(false, "你无权操作一个不属于你的交换！"))
+	}
+	if !database.ChangeHaveByID(tools.StringToInt(id)) {
+		return ctx.JSON(MakeApiResMap(false, "交换不存在！"))
+	}
+	_, _ = database.DatabaseEngine.Table(new(database.ChangeModel)).Where("id = ?", tools.StringToInt(id)).Delete()
+	return ctx.JSON(MakeApiResMap(true, "删除成功！"))
+}
+
+// subjectRoute 分类路由
+func subjectRoute(ctx *fiber.Ctx) error {
+	viewMap := MakeViewMap(ctx)
+	var subjects []database.SubjectModel
+	_ = database.DatabaseEngine.Table(new(database.SubjectModel)).Find(&subjects)
+	viewMap["Subjects"] = subjects
+	return ctx.Render("subject", viewMap, "layout/main")
+}
+
+func subjectAllRoute(ctx *fiber.Ctx) error {
+	viewMap := MakeViewMap(ctx)
+	var allChanges []database.ChangeModel
+	_ = database.DatabaseEngine.Table(new(database.ChangeModel)).Where("subject = ?", tools.StringToInt(ctx.Params("id"))).Where("state = ?", 1).Desc("time").Find(&allChanges)
+	showChanges := [][]database.ChangeModel{}
+	for i := 1; i <= len(allChanges); i += 4 {
+		if i+4 > len(allChanges) {
+			showChanges = append(showChanges, allChanges[(i-1):])
+		} else {
+			showChanges = append(showChanges, allChanges[(i-1):i+3])
+		}
+	}
+	viewMap["Changes"] = showChanges
+	return ctx.Render("index", viewMap, "layout/main")
 }

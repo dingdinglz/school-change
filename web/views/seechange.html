@@ -1,0 +1,155 @@
+{{if eq .Change.User .User_id}}
+<script>
+    function DeleteChange()
+    {
+        layer.confirm('是否删除？', {icon: 3, title:'请仔细考虑'}, function(index){
+            layui.$.post("/change/delete",{id:"{{.Change.ID}}"},function (res){
+                if(res.status === "ok")
+                {
+                    window.location.href = '/change/my';
+                }
+                else
+                {
+                    layer.msg(res.message,{icon:2});
+                }
+            })
+            layer.close(index);
+        });
+    }
+</script>
+<div style="text-align: right">
+    <button class="button is-danger" onclick="DeleteChange()">删除发布</button>
+</div>
+<h2 class="subtitle">交换 ： {{.Change.Title}}</h2>
+<hr>
+<div class="field">
+    <label class="label">设置状态</label>
+    <div class="control">
+        <div class="select" id="StatusSelect">
+            <select>
+                <option value="1">未开始</option>
+                <option value="2">进行中</option>
+                <option value="3">已结束</option>
+            </select>
+        </div>
+    </div>
+</div>
+<script>
+    function DeleteImage(name)
+    {
+        layui.$.post("/change/deleteImage",{id:"{{.Change.ID}}",name:name},function (res){
+            if (res.status==="ok")
+            {
+                location.reload();
+            }
+            else
+            {
+                layer.msg(res.message,{icon:2});
+            }
+        })
+    }
+</script>
+<div class="field">
+    <label class="label">上传图片</label>
+    <div class="control">
+        {{range .Images}}
+        <div class="columns">
+            <div class="column">
+                <figure class="image is-128x128">
+                    <img src="/picture/change/{{.Id}}/{{.Name}}">
+                </figure>
+            </div>
+            <div class="column">
+                <button class="button is-danger" onclick="DeleteImage('{{.Name}}')">删除</button>
+            </div>
+        </div>
+        <hr>
+        {{end}}
+        <div class="button is-primary" id="uploadImage">
+            <ion-icon name="cloud-upload-outline"></ion-icon>上传图片
+        </div>
+    </div>
+</div>
+<script>
+    layui.$("#StatusSelect").find("option[value='{{.Change.State}}']").attr("selected","");
+    layui.$("#StatusSelect").change(function () {
+        var state = layui.$(this).find("option:selected").val();
+        layui.$.post("/change/api/update/changeState",{id:"{{.Change.ID}}",state:state},function (res){
+            if(res.status === "ok")
+            {
+                layer.msg(res.message,{icon:1});
+            }
+            else
+            {
+                layer.msg(res.message,{icon:2});
+            }
+        })
+    });
+    layui.use('upload', function(){
+        var upload = layui.upload;
+        var uploadInst = upload.render({
+            elem: '#uploadImage'
+            ,url: '/change/uploadImage?id={{.Change.ID}}'
+            ,done: function(res){
+                if (res.status === "ok")
+                {
+                    location.reload();
+                }
+                else
+                {
+                    layer.msg(res.message,{icon:2});
+                }
+            }
+        });
+    });
+</script>
+{{else}}
+<div class="modal" id="SeeBigModal">
+    <div class="modal-background"></div>
+    <div class="modal-content">
+        <p class="image is-4by3">
+            <img src="" id="SeeBigImage">
+        </p>
+    </div>
+    <button class="modal-close is-large" aria-label="close" onclick="document.getElementById('SeeBigModal').classList.remove('is-active')"></button>
+</div>
+<script>
+    function SeeBig(name)
+    {
+        layui.$("#SeeBigImage").attr("src","/picture/change/{{.Change.ID}}/"+name);
+        document.getElementById("SeeBigModal").classList.add("is-active")
+    }
+</script>
+<h2 class="subtitle">图片(点击看大图)</h2>
+{{range .Images}}
+<figure class="image is-128x128" onclick="SeeBig('{{.Name}}')">
+    <img src="/picture/change/{{.Id}}/{{.Name}}">
+</figure>
+{{end}}
+<hr>
+<table class="table is-fullwidth">
+    <thead>
+        <tr>
+            <th width="20%">名</th>
+            <th></th>
+        </tr>
+    </thead>
+    <tbody>
+        <tr>
+            <th>标题</th>
+            <td>{{.Change.Title}}</td>
+        </tr>
+        <tr>
+            <th>描述</th>
+            <td>{{.Change.Description}}</td>
+        </tr>
+        <tr>
+            <th>发布者</th>
+            <td>{{User_GetRealnameByID .Change.User}}</td>
+        </tr>
+    </tbody>
+</table>
+<hr>
+<button class="button is-primary">私聊联系</button>
+<button class="button is-danger">举报</button>
+{{end}}

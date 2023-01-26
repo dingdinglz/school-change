@@ -4,6 +4,7 @@ import (
 	"io/fs"
 	"os"
 	"path/filepath"
+	"strconv"
 )
 
 // IsFileExist 判断文件或文件夹是否存在
@@ -30,4 +31,15 @@ func GetNumberOfFiles(_path string) int {
 		return nil
 	})
 	return all
+}
+
+// GetNextPicName 取可用图片名
+func GetNextPicName(_path string) string {
+	var cnt = 1
+	for {
+		if !IsFileExist(filepath.Join(_path, strconv.Itoa(cnt)+".png")) {
+			return strconv.Itoa(cnt) + ".png"
+		}
+		cnt++
+	}
 }
