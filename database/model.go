@@ -66,3 +66,26 @@ type ChangeModel struct {
 func (i *ChangeModel) TableName() string {
 	return "change"
 }
+
+type MessageModel struct {
+	Time     time.Time
+	Type     string // chat为私聊
+	FromUser int    //为0则是系统消息
+	ToUser   int
+	Message  string
+}
+
+func (i *MessageModel) TableName() string {
+	return "message"
+}
+
+type ReportModel struct {
+	Time    time.Time
+	Change  int
+	Message string
+	User    int
+}
+
+func (i *ReportModel) TableName() string {
+	return "report"
+}

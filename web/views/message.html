@@ -1,0 +1,76 @@
+{{if .Messages}}
+<table class="table is-fullwidth">
+    <thead>
+        <tr>
+            <th width="10%">类型</th>
+            <th width="20%">来源</th>
+            <th width="60%">消息内容</th>
+            <th>操作</th>
+        </tr>
+    </thead>
+    <tbody>
+        {{range .Messages}}
+            {{if eq .Type "chat"}}
+                <tr>
+                    <td><span class="tag is-primary">私聊</span></td>
+                    <td>{{User_GetRealnameByID .FromUser}}</td>
+                    <td>{{.Message}}</td>
+                    <td><button class="button is-primary" onclick="window.location.href='/webchat/{{.FromUser}}'">查看</button></td>
+                </tr>
+            {{end}}
+            {{if eq .Type "apply"}}
+                <tr>
+                    <td><span class="tag is-link">用户申请</span></td>
+                    <td>系统</td>
+                    <td>{{.Message}}</td>
+                    <td><button class="button is-primary" onclick="window.location.href='/admin/user/apply'">查看</button></td>
+                </tr>
+            {{end}}
+            {{if eq .Type "report"}}
+                <tr>
+                    <td><span class="tag is-danger">举报</span></td>
+                    <td>系统</td>
+                    <td>{{.Message}}</td>
+                    <td><button class="button is-primary" onclick="window.location.href='/admin/change/report'">查看</button></td>
+                </tr>
+            {{end}}
+            {{if eq .Type "punish"}}
+            <tr>
+                <td><span class="tag is-danger">举报</span></td>
+                <td>系统</td>
+                <td>您的交换被举报，原因：{{.Message}}，经核实已删除，请注意您的举止，行为恶劣者将向有关单位报告！</td>
+            </tr>
+            {{end}}
+            {{if eq .Type "thank"}}
+            <tr>
+                <td><span class="tag is-success">反馈</span></td>
+                <td>系统</td>
+                <td>{{.Message}}</td>
+            </tr>
+            {{end}}
+        {{end}}
+    </tbody>
+</table>
+<script>
+    function CleanMessages()
+    {
+        var xlr = new XMLHttpRequest()
+        xlr.open("GET","/change/cleanMessages",false);
+        xlr.send(null);
+        var x = xlr.responseText;
+        location.reload();
+    }
+</script>
+<div style="text-align: right">
+    <button class="button is-danger" onclick="CleanMessages()">清空消息列表</button>
+</div>
+{{else}}
+<article class="message is-warning">
+    <div class="message-header">
+        <p>Warning</p>
+    </div>
+    <div class="message-body">
+        <strong>消息列表为空</strong>
+    </div>
+</article>
+{{end}}

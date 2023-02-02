@@ -11,6 +11,7 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
+	"time"
 )
 
 func MakeViewMap(c *fiber.Ctx) map[string]interface{} {
@@ -39,6 +40,7 @@ func MakeViewMap(c *fiber.Ctx) map[string]interface{} {
 			ResMap["User_username"] = fmt.Sprintf("%s", UserUsername)
 			ResMap["User_level"] = UserLevel_i
 			ResMap["User_id"] = UserID_i
+			ResMap["MessageNum"], _ = database.DatabaseEngine.Table(new(database.MessageModel)).Where("to_user = ?", UserID_i).Count()
 		} else {
 			ResMap["User_login"] = false
 			ResMap["WarningMessage"] = "登录信息有误！请重新登录！"
@@ -60,6 +62,11 @@ func BindRoutes() {
 	WebServer.Get("/picture/change/:change/:which", changePictureRoute)
 	WebServer.Get("/subject", subjectRoute)
 	WebServer.Get("/subject/id/:id", subjectAllRoute)
+	WebServer.Use("/webchat", middleMustLogin)
+	WebServer.Get("/webchat/:id", chatRoute)
+	WebServer.Use("/info", middleMustLogin)
+	WebServer.Get("/info", messageRoute)
+	WebServer.Get("/about", aboutRoute)
 
 	changeRoute := WebServer.Group("/change")
 	changeRoute.Use(middleMustLogin)
@@ -69,6 +76,8 @@ func BindRoutes() {
 	changeRoute.Post("/uploadImage", apiChangeUploadImage)
 	changeRoute.Post("/deleteImage", apiChangeDeleteImage)
 	changeRoute.Post("/delete", apiChangeDelete)
+	changeRoute.Post("/report", apiChangeReportRoute)
+	changeRoute.Get("/cleanMessages", apiCleanMessages)
 
 	changeApiRoute := changeRoute.Group("/api")
 
@@ -100,6 +109,7 @@ func BindRoutes() {
 	adminRoute.Get("/user/manage", adminUserManageRoute)
 	adminRoute.Get("/user/apply", adminUserApplyRoute)
 	adminRoute.Get("/change/subject", adminChangeSubjectRoute)
+	adminRoute.Get("/change/report", adminReportRoute)
 
 	adminApiRoute := adminRoute.Group("/api")
 	adminApiRoute.Post("/apply/pass", adminApiApplyPass)
@@ -109,10 +119,12 @@ func BindRoutes() {
 	adminApiGetRoute.Post("/users", adminApiGetUsers)
 	adminApiGetRoute.Get("/applies", adminApiGetApplies)
 	adminApiGetRoute.Get("/subjects", adminApiGetSubjects)
+	adminApiGetRoute.Get("/reports", apiAdminGetReports)
 
 	adminApiDeleteRoute := adminApiRoute.Group("/delete")
 	adminApiDeleteRoute.Post("/user", adminApiDeleteUserRoute)
 	adminApiDeleteRoute.Post("/subject", adminApiDeleteSubject)
+	adminApiDeleteRoute.Post("/report", adminDeleteReport)
 
 	adminApiUpdateRoute := adminApiRoute.Group("/update")
 	adminApiUpdateRoute.Post("/user", adminApiUpdateUserRoute)
@@ -122,6 +134,8 @@ func BindRoutes() {
 	adminApiCreateRoute.Post("/user", adminApiCreateUser)
 	adminApiCreateRoute.Post("/subject", adminApiCreateSubject)
 
+	adminApiPassRoute := adminApiRoute.Group("/pass")
+	adminApiPassRoute.Post("/report", adminReportPass)
 }
 
 // indexRoute 主页路由
@@ -329,6 +343,7 @@ func apiRegisterUserRoute(ctx *fiber.Ctx) error {
 		return ctx.JSON(MakeApiResMap(false, "该ip存在账号申请！"))
 	}
 	database.UserApplyCreate(username, password, ip, tools.StringToInt(grade), tools.StringToInt(class), realname)
+	database.MessageCreateToAdmins("apply", "用户注册申请："+realname)
 	return ctx.JSON(MakeApiResMap(true, "已申请！请等待审核！"))
 }
 
@@ -677,4 +692,116 @@ func subjectAllRoute(ctx *fiber.Ctx) error {
 	}
 	viewMap["Changes"] = showChanges
 	return ctx.Render("index", viewMap, "layout/main")
+}
+
+// chatRoute 聊天界面路由
+func chatRoute(ctx *fiber.Ctx) error {
+	viewMap := MakeViewMap(ctx)
+	viewMap["ChatID"] = tools.StringToInt(ctx.Params("id"))
+	return ctx.Render("chat", viewMap)
+}
+
+// messageRoute 消息路由
+func messageRoute(ctx *fiber.Ctx) error {
+	s, _ := SessionStore.Get(ctx)
+	userID := s.Get("user_id")
+	userIDInt := tools.InterfaceToInt(userID)
+	viewMap := MakeViewMap(ctx)
+	var messages []database.MessageModel
+	_ = database.DatabaseEngine.Table(new(database.MessageModel)).Where("to_user = ?", userIDInt).Desc("time").Find(&messages)
+	viewMap["Messages"] = messages
+	return ctx.Render("message", viewMap, "layout/main")
+}
+
+// apiChangeReportRoute 举报交换api
+func apiChangeReportRoute(ctx *fiber.Ctx) error {
+	change := ctx.FormValue("change", "")
+	message := ctx.FormValue("message", "")
+	if change == "" || message == "" {
+		return ctx.JSON(MakeApiResMap(false, "存在字段为空！"))
+	}
+	s, _ := SessionStore.Get(ctx)
+	userID := s.Get("user_id")
+	userIDInt := tools.InterfaceToInt(userID)
+	database.ReportCreateNew(tools.StringToInt(change), message, userIDInt)
+	database.MessageCreateToAdmins("report", "新举报："+message)
+	return ctx.JSON(MakeApiResMap(true, "举报成功！"))
+}
+
+// apiAdminGetReports admin获取举报
+func apiAdminGetReports(ctx *fiber.Ctx) error {
+	var reports []database.ReportModel
+	_ = database.DatabaseEngine.Table(new(database.ReportModel)).Find(&reports)
+	return ctx.JSON(MakeApiResMapWithData(true, "获取成功！", fiber.Map{"reports": reports}))
+}
+
+// adminReportRoute admin举报路由
+func adminReportRoute(ctx *fiber.Ctx) error {
+	return ctx.Render("admin/report", MakeViewMap(ctx), "layout/admin")
+}
+
+// adminReportPass 通过举报
+func adminReportPass(ctx *fiber.Ctx) error {
+	change := ctx.FormValue("change", "")
+	message := ctx.FormValue("message", "")
+	user := ctx.FormValue("user", "")
+	if change == "" || message == "" || user == "" {
+		return ctx.JSON(MakeApiResMap(false, "存在字段为空！"))
+	}
+	changeID := tools.StringToInt(change)
+	if !database.ChangeHaveByID(changeID) {
+		return ctx.JSON(MakeApiResMap(false, "该交换不存在！"))
+	}
+	var c database.ChangeModel
+	_, _ = database.DatabaseEngine.Table(new(database.ChangeModel)).Where("id = ?", changeID).Get(&c)
+	s, _ := SessionStore.Get(ctx)
+	userID := s.Get("user_id")
+	userIDInt := tools.InterfaceToInt(userID)
+	if database.UserGetLevelByID(c.User) >= 2 && database.UserGetLevelByID(userIDInt) < database.UserGetLevelByID(c.User) {
+		if database.UserGetLevelByID(userIDInt) != 3 {
+			return ctx.JSON(MakeApiResMap(false, "权限不足！"))
+		}
+	}
+	_, _ = database.DatabaseEngine.Table(new(database.MessageModel)).Insert(&database.MessageModel{
+		Time:     time.Now(),
+		Type:     "punish",
+		FromUser: 0,
+		ToUser:   c.User,
+		Message:  message,
+	})
+	_, _ = database.DatabaseEngine.Table(new(database.MessageModel)).Insert(&database.MessageModel{
+		Time:     time.Now(),
+		Type:     "thank",
+		FromUser: 0,
+		ToUser:   tools.StringToInt(user),
+		Message:  "您对于交换id为" + change + "的举报成功！感谢反馈！",
+	})
+	_, _ = database.DatabaseEngine.Table(new(database.ReportModel)).Where("change = ?", changeID).Delete()
+	_, _ = database.DatabaseEngine.Table(new(database.ChangeModel)).Where("id = ?", changeID).Delete()
+	return ctx.JSON(MakeApiResMap(true, "已通过举报！"))
+}
+
+// adminDeleteReport 取消举报
+func adminDeleteReport(ctx *fiber.Ctx) error {
+	change := ctx.FormValue("change", "")
+	message := ctx.FormValue("message", "")
+	if change == "" || message == "" {
+		return ctx.JSON(MakeApiResMap(false, "存在字段为空！"))
+	}
+	_, _ = database.DatabaseEngine.Table(new(database.ReportModel)).Where("change = ?", tools.StringToInt(change)).Where("message = ?", message).Delete()
+	return ctx.JSON(MakeApiResMap(true, "已取消！"))
+}
+
+// apiCleanMessages 清除消息列表
+func apiCleanMessages(ctx *fiber.Ctx) error {
+	s, _ := SessionStore.Get(ctx)
+	userID := s.Get("user_id")
+	userIDInt := tools.InterfaceToInt(userID)
+	_, _ = database.DatabaseEngine.Table(new(database.MessageModel)).Where("to_user = ?", userIDInt).Delete()
+	return ctx.JSON(MakeApiResMap(true, "删除成功！"))
+}
+
+// aboutRoute 关于路由
+func aboutRoute(ctx *fiber.Ctx) error {
+	return ctx.Render("about", MakeViewMap(ctx), "layout/main")
 }

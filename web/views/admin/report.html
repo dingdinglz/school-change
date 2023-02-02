@@ -1,0 +1,87 @@
+<div id="app">
+    <table class="layui-table">
+        <colgroup>
+            <col width="5%">
+            <col width="10%">
+            <col width="65%">
+            <col>
+        </colgroup>
+        <thead>
+            <tr>
+                <td>交换ID</td>
+                <td>举报用户ID</td>
+                <td>举报内容</td>
+                <td>操作</td>
+            </tr>
+        </thead>
+        <tbody>
+            <tr v-for="i in ReportDatas">
+                <td>{{"{{"}}i.Change{{"}}"}}</td>
+                <td>{{"{{"}}i.User{{"}}"}}</td>
+                <td>{{"{{"}}i.Message{{"}}"}}</td>
+                <td>
+                    <button class="layui-btn" v-on:click="SeeInfo(i.Change)">查看详情</button>
+                    <button class="layui-btn layui-btn-danger" v-on:click="PassReport(i.Change,i.Message,i.User)">删除</button>
+                    <button class="layui-btn layui-btn-danger" v-on:click="DeleteReport(i.Change,i.Message)">取消</button>
+                </td>
+            </tr>
+        </tbody>
+    </table>
+</div>
+<script>
+    const {createApp} = Vue;
+    createApp({
+        data(){
+            return {
+                ReportDatas:[]
+            }
+        },
+        methods: {
+          RefreshReports()
+          {
+              var that = this;
+              window.layui.$.get("/admin/api/get/reports",function (res){
+                  that.ReportDatas = res.data.reports;
+              });
+          },
+            SeeInfo(change)
+            {
+                window.location.href = '/change/id/'+change;
+            },
+            PassReport(change,message,user)
+            {
+                var that = this;
+                window.layui.$.post("/admin/api/pass/report",{message:message,change:change,user:user},function (res){
+                    if(res.status === "ok")
+                    {
+                        window.layer.msg(res.message,{icon:1});
+                        that.RefreshReports();
+                    }
+                    else
+                    {
+                        window.layer.msg(res.message,{icon:2});
+                    }
+                });
+            },
+            DeleteReport(change,message)
+            {
+                var that = this;
+                window.layui.$.post("/admin/api/delete/report",{message:message,change:change},function (res){
+                    if(res.status === "ok")
+                    {
+                        window.layer.msg(res.message,{icon:1});
+                        that.RefreshReports();
+                    }
+                    else
+                    {
+                        window.layer.msg(res.message,{icon:2});
+                    }
+                });
+            }
+        },
+        mounted()
+        {
+            this.RefreshReports();
+        }
+    }).mount("#app");
+</script>

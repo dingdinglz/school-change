@@ -150,6 +150,27 @@
     </tbody>
 </table>
 <hr>
-<button class="button is-primary">私聊联系</button>
-<button class="button is-danger">举报</button>
+<button class="button is-primary" onclick="window.location.href='/webchat/{{.Change.User}}'">私聊联系</button>
+<script>
+    function ReportClick()
+    {
+        layer.prompt({
+            value: '',
+            title: '请输入举报内容',
+        }, function(value, index, elem){
+            layui.$.post("/change/report",{message:value,change:"{{.Change.ID}}"},function (res){
+                if(res.status === "ok")
+                {
+                    layer.msg(res.message,{icon:1});
+                }
+                else
+                {
+                    layer.msg(res.message,{icon:2});
+                }
+            });
+            layer.close(index);
+        });
+    }
+</script>
+<button class="button is-danger" onclick="ReportClick()">举报</button>
 {{end}}

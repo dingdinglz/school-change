@@ -25,6 +25,7 @@ func Start() {
 	SessionStore = session.New()
 	WebServer.Use(WebLogger.New(), recover2.New())
 	WebServer.Static("/", "./web/public")
+	BindChatWebsocket()
 	BindRoutes()
 	err := WebServer.Listen("0.0.0.0:" + config.ConfigData.Port)
 	if err != nil {

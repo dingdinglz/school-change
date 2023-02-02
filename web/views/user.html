@@ -99,7 +99,7 @@
                 </div>
             </div>
             <div class="content">
-                <button class="button is-primary">私聊联系</button>
+                <button class="button is-primary" v-on:click="Jump">私聊联系</button>
             </div>
         </div>
     </div>
@@ -125,6 +125,11 @@
                     window.layer.msg(res.message,{icon:2})
                 }
             })
+        },
+        methods:{
+            Jump(){
+                window.location.href= '/webchat/'+this.u.ID;
+            }
         }
     }).mount("#app");
 </script>
