@@ -6,6 +6,7 @@ import (
 	"change/tools"
 	"fmt"
 	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v2/middleware/monitor"
 	"io/fs"
 	"os"
 	"path/filepath"
@@ -67,6 +68,7 @@ func BindRoutes() {
 	WebServer.Use("/info", middleMustLogin)
 	WebServer.Get("/info", messageRoute)
 	WebServer.Get("/about", aboutRoute)
+	WebServer.Get("/status", monitor.New(monitor.Config{Title: "monitor"}))
 
 	changeRoute := WebServer.Group("/change")
 	changeRoute.Use(middleMustLogin)
@@ -110,6 +112,7 @@ func BindRoutes() {
 	adminRoute.Get("/user/apply", adminUserApplyRoute)
 	adminRoute.Get("/change/subject", adminChangeSubjectRoute)
 	adminRoute.Get("/change/report", adminReportRoute)
+	adminRoute.Get("/status", statusRoute)
 
 	adminApiRoute := adminRoute.Group("/api")
 	adminApiRoute.Post("/apply/pass", adminApiApplyPass)
@@ -804,4 +807,9 @@ func apiCleanMessages(ctx *fiber.Ctx) error {
 // aboutRoute 关于路由
 func aboutRoute(ctx *fiber.Ctx) error {
 	return ctx.Render("about", MakeViewMap(ctx), "layout/main")
+}
+
+// statusRoute 状态路由
+func statusRoute(ctx *fiber.Ctx) error {
+	return ctx.Render("admin/status", MakeViewMap(ctx), "layout/admin")
 }

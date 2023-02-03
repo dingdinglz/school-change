@@ -17,7 +17,7 @@ func InitConfig() {
 			SSL:    false,
 			Debug:  false,
 			School: "合肥市第七中学",
-			Limit:  ConfigLimitModel{Change: 30},
+			Limit:  ConfigLimitModel{Change: 30, Web: 30},
 		})
 		if err != nil {
 			fmt.Println("config创建出现错误！", err.Error())

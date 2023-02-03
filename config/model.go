@@ -11,4 +11,5 @@ type ConfigJsonModel struct {
 
 type ConfigLimitModel struct {
 	Change int `json:"change"`
+	Web    int `json:"web"`
 }
