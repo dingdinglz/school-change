@@ -150,6 +150,9 @@ func indexRoute(ctx *fiber.Ctx) error {
 	var allChanges, Changes []database.ChangeModel
 	var pages int = 0
 	_ = database.DatabaseEngine.Table(new(database.ChangeModel)).Where("state = ?", 1).Desc("time").Find(&Changes)
+	if len(Changes) == 0 {
+		return ctx.Render("index", viewMap, "layout/main")
+	}
 	pages = len(Changes) / 12
 	if len(Changes)%12 != 0 {
 		pages += 1

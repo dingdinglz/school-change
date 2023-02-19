@@ -21,8 +21,8 @@
                 <td>{{"{{"}}i.Message{{"}}"}}</td>
                 <td>
                     <button class="layui-btn" v-on:click="SeeInfo(i.Change)">查看详情</button>
-                    <button class="layui-btn layui-btn-danger" v-on:click="PassReport(i.Change,i.Message,i.User)">删除</button>
-                    <button class="layui-btn layui-btn-danger" v-on:click="DeleteReport(i.Change,i.Message)">取消</button>
+                    <button class="layui-btn layui-btn-danger" v-on:click="PassReport(i.Change,i.Message,i.User)">通过</button>
+                    <button class="layui-btn layui-btn-danger" v-on:click="DeleteReport(i.Change,i.Message)">拒绝</button>
                 </td>
             </tr>
         </tbody>
