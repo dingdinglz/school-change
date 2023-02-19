@@ -61,6 +61,7 @@ type ChangeModel struct {
 	Description string
 	Want        string
 	State       int // 1 未开始  2 交换中  3 交换结束
+	Money       int // 价格
 }
 
 func (i *ChangeModel) TableName() string {

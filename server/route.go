@@ -69,6 +69,7 @@ func BindRoutes() {
 	WebServer.Get("/info", messageRoute)
 	WebServer.Get("/about", aboutRoute)
 	WebServer.Get("/status", monitor.New(monitor.Config{Title: "monitor"}))
+	WebServer.Get("/search", searchRoute)
 
 	changeRoute := WebServer.Group("/change")
 	changeRoute.Use(middleMustLogin)
@@ -143,10 +144,30 @@ func BindRoutes() {
 
 // indexRoute 主页路由
 func indexRoute(ctx *fiber.Ctx) error {
+	nowpage := ctx.Query("page", "1")
+	nowpageInt := tools.StringToInt(nowpage)
 	viewMap := MakeViewMap(ctx)
-	var allChanges []database.ChangeModel
-	_ = database.DatabaseEngine.Table(new(database.ChangeModel)).Where("state = ?", 1).Desc("time").Find(&allChanges)
+	var allChanges, Changes []database.ChangeModel
+	var pages int = 0
+	_ = database.DatabaseEngine.Table(new(database.ChangeModel)).Where("state = ?", 1).Desc("time").Find(&Changes)
+	pages = len(Changes) / 12
+	if len(Changes)%12 != 0 {
+		pages += 1
+	}
+	if nowpageInt <= 0 || nowpageInt > pages {
+		nowpageInt = 1
+	}
 	showChanges := [][]database.ChangeModel{}
+	paginations := []string{}
+	for i := 1; i <= pages; i++ {
+		paginations = append(paginations, strconv.Itoa(i))
+	}
+
+	if pages != nowpageInt {
+		allChanges = Changes[(nowpageInt*12 - 12):(nowpageInt * 12)]
+	} else {
+		allChanges = Changes[(nowpageInt*12 - 12):]
+	}
 	for i := 1; i <= len(allChanges); i += 4 {
 		if i+4 > len(allChanges) {
 			showChanges = append(showChanges, allChanges[(i-1):])
@@ -155,6 +176,11 @@ func indexRoute(ctx *fiber.Ctx) error {
 		}
 	}
 	viewMap["Changes"] = showChanges
+	viewMap["Page_map"] = paginations
+	viewMap["Page_now"] = nowpage
+	viewMap["Page_all"] = strconv.Itoa(pages)
+	viewMap["Page_next"] = strconv.Itoa(nowpageInt + 1)
+	viewMap["Page_present"] = strconv.Itoa(nowpageInt - 1)
 	return ctx.Render("index", viewMap, "layout/main")
 }
 
@@ -523,7 +549,8 @@ func apiCreateChange(ctx *fiber.Ctx) error {
 	description := ctx.FormValue("description", "")
 	subject := ctx.FormValue("subject", "")
 	want := ctx.FormValue("want", "")
-	if title == "" || description == "" || subject == "" || want == "" {
+	money := ctx.FormValue("money", "")
+	if title == "" || description == "" || subject == "" || want == "" || money == "" {
 		return ctx.JSON(MakeApiResMap(false, "存在字段为空！"))
 	}
 	s, _ := SessionStore.Get(ctx)
@@ -532,7 +559,7 @@ func apiCreateChange(ctx *fiber.Ctx) error {
 	if !database.ChangeCheckTime(tools.StringToInt(userIDStr)) {
 		return ctx.JSON(MakeApiResMap(false, "距离上次创建不足"+strconv.Itoa(config.ConfigData.Limit.Change)+"分钟！"))
 	}
-	database.ChangeCreateNew(title, description, tools.StringToInt(subject), tools.StringToInt(userIDStr), want)
+	database.ChangeCreateNew(title, description, tools.StringToInt(subject), tools.StringToInt(userIDStr), want, tools.StringToInt(money))
 	return ctx.JSON(MakeApiResMap(true, "发布成功！"))
 }
 
@@ -682,10 +709,30 @@ func subjectRoute(ctx *fiber.Ctx) error {
 }
 
 func subjectAllRoute(ctx *fiber.Ctx) error {
+	nowpage := ctx.Query("page", "1")
+	nowpageInt := tools.StringToInt(nowpage)
 	viewMap := MakeViewMap(ctx)
-	var allChanges []database.ChangeModel
-	_ = database.DatabaseEngine.Table(new(database.ChangeModel)).Where("subject = ?", tools.StringToInt(ctx.Params("id"))).Where("state = ?", 1).Desc("time").Find(&allChanges)
+	var allChanges, Changes []database.ChangeModel
+	var pages int = 0
+	_ = database.DatabaseEngine.Table(new(database.ChangeModel)).Where("subject = ?", tools.StringToInt(ctx.Params("id"))).Where("state = ?", 1).Desc("time").Find(&Changes)
+	pages = len(Changes) / 12
+	if len(Changes)%12 != 0 {
+		pages += 1
+	}
+	if nowpageInt <= 0 || nowpageInt > pages {
+		nowpageInt = 1
+	}
 	showChanges := [][]database.ChangeModel{}
+	paginations := []string{}
+	for i := 1; i <= pages; i++ {
+		paginations = append(paginations, strconv.Itoa(i))
+	}
+
+	if pages != nowpageInt {
+		allChanges = Changes[(nowpageInt*12 - 12):(nowpageInt * 12)]
+	} else {
+		allChanges = Changes[(nowpageInt*12 - 12):]
+	}
 	for i := 1; i <= len(allChanges); i += 4 {
 		if i+4 > len(allChanges) {
 			showChanges = append(showChanges, allChanges[(i-1):])
@@ -694,6 +741,11 @@ func subjectAllRoute(ctx *fiber.Ctx) error {
 		}
 	}
 	viewMap["Changes"] = showChanges
+	viewMap["Page_map"] = paginations
+	viewMap["Page_now"] = nowpage
+	viewMap["Page_all"] = strconv.Itoa(pages)
+	viewMap["Page_next"] = strconv.Itoa(nowpageInt + 1)
+	viewMap["Page_present"] = strconv.Itoa(nowpageInt - 1)
 	return ctx.Render("index", viewMap, "layout/main")
 }
 
@@ -812,4 +864,29 @@ func aboutRoute(ctx *fiber.Ctx) error {
 // statusRoute 状态路由
 func statusRoute(ctx *fiber.Ctx) error {
 	return ctx.Render("admin/status", MakeViewMap(ctx), "layout/admin")
+}
+
+// searchRoute 搜索路由
+func searchRoute(ctx *fiber.Ctx) error {
+	word := ctx.Query("word", "")
+	if word == "" {
+		s, _ := SessionStore.Get(ctx)
+		s.Set("message_warning", "登录信息有误！请重新登录！")
+		_ = s.Save()
+		return ctx.Redirect("/")
+	}
+	viewMap := MakeViewMap(ctx)
+	var allChanges []database.ChangeModel
+	_ = database.DatabaseEngine.Table(new(database.ChangeModel)).Where("description like ?", "%"+word+"%").Where("state = ?", 1).Desc("time").Find(&allChanges)
+	showChanges := [][]database.ChangeModel{}
+	for i := 1; i <= len(allChanges); i += 4 {
+		if i+4 > len(allChanges) {
+			showChanges = append(showChanges, allChanges[(i-1):])
+		} else {
+			showChanges = append(showChanges, allChanges[(i-1):i+3])
+		}
+	}
+	viewMap["Changes"] = showChanges
+	return ctx.Render("index", viewMap, "layout/main")
+
 }

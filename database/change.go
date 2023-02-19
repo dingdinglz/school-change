@@ -6,7 +6,7 @@ import (
 )
 
 // ChangeCreateNew 创建一个新的change
-func ChangeCreateNew(title string, description string, subject int, user int, want string) {
+func ChangeCreateNew(title string, description string, subject int, user int, want string, money int) {
 	_, _ = DatabaseEngine.Table(new(ChangeModel)).Insert(&ChangeModel{
 		Time:        time.Now(),
 		User:        user,
@@ -16,6 +16,7 @@ func ChangeCreateNew(title string, description string, subject int, user int, wa
 		Description: description,
 		Want:        want,
 		State:       1,
+		Money:       money,
 	})
 }
 

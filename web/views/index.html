@@ -26,6 +26,8 @@
                     <br>
                     分类：<span class="tag is-info">{{Subject_GetNameByID .Subject}}</span>
                     <br>
+                    出售金额：{{.Money}}
+                    <br>
                     我想要：{{.Want}}
                     <br>
                     <br>
@@ -37,3 +39,40 @@
     {{end}}
 </div>
 {{end}}
+{{if .Page_now}}
+<nav class="pagination" role="navigation" aria-label="pagination">
+    {{if eq .Page_present "0"}}
+    <a class="pagination-previous is-disabled">前一页</a>
+    {{else}}
+    <a class="pagination-previous" href="?page={{.Page_present}}">前一页</a>
+    {{end}}
+    {{if eq .Page_now .Page_all}}
+    <a class="pagination-next is-disabled">下一页</a>
+    {{else}}
+    <a class="pagination-next" href="?page={{.Page_next}}">下一页</a>
+    {{end}}
+    <ul class="pagination-list">
+        {{range .Page_map}}
+        {{if eq . "..."}}
+        <li>
+            <span class="pagination-ellipsis">&hellip;</span>
+        </li>
+        {{else}}
+        {{if eq . $.Page_now}}
+        <li>
+            <a class="pagination-link is-current" aria-current="page" aria-label="Goto page {{.}}">{{.}}</a>
+        </li>
+        {{else}}
+        <li>
+            <a class="pagination-link" aria-label="Goto page {{.}}" href="?page={{.}}" >{{.}}</a>
+        </li>
+        {{end}}
+        {{end}}
+        {{end}}
+    </ul>
+</nav>
+{{end}}
+<script>
+    const observer = lozad(document.querySelector('img'));
+    observer.observe();
+</script>
