@@ -1,3 +1,25 @@
+<div style="text-align: right">
+    <div class="dropdown is-hoverable">
+        <div class="dropdown-trigger">
+            <button class="button" aria-haspopup="true" aria-controls="dropdown-menu3">
+                <span>按金额排序</span>
+            </button>
+        </div>
+        <div class="dropdown-menu" id="dropdown-menu3" role="menu">
+            <div class="dropdown-content">
+                <a href="/money/high" class="dropdown-item">
+                    从高到低
+                </a>
+                <a href="/money/low" class="dropdown-item">
+                    从低到高
+                </a>
+            </div>
+        </div>
+    </div>
+    <button class="button" onclick="window.location.href='/'">
+        按时间排序
+    </button>
+</div>
 {{range .Changes}}
 <div class="columns">
     {{range .}}
@@ -26,7 +48,7 @@
                     <br>
                     分类：<span class="tag is-info">{{Subject_GetNameByID .Subject}}</span>
                     <br>
-                    出售金额：{{.Money}}
+                    出售金额：{{.Money}} 元
                     <br>
                     我想要：{{.Want}}
                     <br>

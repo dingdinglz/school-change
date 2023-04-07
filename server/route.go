@@ -58,6 +58,8 @@ func MakeViewMap(c *fiber.Ctx) map[string]interface{} {
 // BindRoutes 绑定路由
 func BindRoutes() {
 	WebServer.Get("/", indexRoute)
+	WebServer.Get("/money/high", moneyHighRoute)
+	WebServer.Get("/money/low", moneyLowRoute)
 	WebServer.Get("/avatar/:username", avatarRoute)
 	WebServer.Get("/user/:id", userRoute)
 	WebServer.Get("/picture/change/:change/:which", changePictureRoute)
@@ -150,6 +152,96 @@ func indexRoute(ctx *fiber.Ctx) error {
 	var allChanges, Changes []database.ChangeModel
 	var pages int = 0
 	_ = database.DatabaseEngine.Table(new(database.ChangeModel)).Where("state = ?", 1).Desc("time").Find(&Changes)
+	if len(Changes) == 0 {
+		return ctx.Render("index", viewMap, "layout/main")
+	}
+	pages = len(Changes) / 12
+	if len(Changes)%12 != 0 {
+		pages += 1
+	}
+	if nowpageInt <= 0 || nowpageInt > pages {
+		nowpageInt = 1
+	}
+	showChanges := [][]database.ChangeModel{}
+	paginations := []string{}
+	for i := 1; i <= pages; i++ {
+		paginations = append(paginations, strconv.Itoa(i))
+	}
+
+	if pages != nowpageInt {
+		allChanges = Changes[(nowpageInt*12 - 12):(nowpageInt * 12)]
+	} else {
+		allChanges = Changes[(nowpageInt*12 - 12):]
+	}
+	for i := 1; i <= len(allChanges); i += 4 {
+		if i+4 > len(allChanges) {
+			showChanges = append(showChanges, allChanges[(i-1):])
+		} else {
+			showChanges = append(showChanges, allChanges[(i-1):i+3])
+		}
+	}
+	viewMap["Changes"] = showChanges
+	viewMap["Page_map"] = paginations
+	viewMap["Page_now"] = nowpage
+	viewMap["Page_all"] = strconv.Itoa(pages)
+	viewMap["Page_next"] = strconv.Itoa(nowpageInt + 1)
+	viewMap["Page_present"] = strconv.Itoa(nowpageInt - 1)
+	return ctx.Render("index", viewMap, "layout/main")
+}
+
+// moneyHighRoute 按金额排序由高到低
+func moneyHighRoute(ctx *fiber.Ctx) error {
+	nowpage := ctx.Query("page", "1")
+	nowpageInt := tools.StringToInt(nowpage)
+	viewMap := MakeViewMap(ctx)
+	var allChanges, Changes []database.ChangeModel
+	var pages int = 0
+	_ = database.DatabaseEngine.Table(new(database.ChangeModel)).Where("state = ?", 1).Desc("money").Desc("time").Find(&Changes)
+	if len(Changes) == 0 {
+		return ctx.Render("index", viewMap, "layout/main")
+	}
+	pages = len(Changes) / 12
+	if len(Changes)%12 != 0 {
+		pages += 1
+	}
+	if nowpageInt <= 0 || nowpageInt > pages {
+		nowpageInt = 1
+	}
+	showChanges := [][]database.ChangeModel{}
+	paginations := []string{}
+	for i := 1; i <= pages; i++ {
+		paginations = append(paginations, strconv.Itoa(i))
+	}
+
+	if pages != nowpageInt {
+		allChanges = Changes[(nowpageInt*12 - 12):(nowpageInt * 12)]
+	} else {
+		allChanges = Changes[(nowpageInt*12 - 12):]
+	}
+	for i := 1; i <= len(allChanges); i += 4 {
+		if i+4 > len(allChanges) {
+			showChanges = append(showChanges, allChanges[(i-1):])
+		} else {
+			showChanges = append(showChanges, allChanges[(i-1):i+3])
+		}
+	}
+	viewMap["Changes"] = showChanges
+	viewMap["Page_map"] = paginations
+	viewMap["Page_now"] = nowpage
+	viewMap["Page_all"] = strconv.Itoa(pages)
+	viewMap["Page_next"] = strconv.Itoa(nowpageInt + 1)
+	viewMap["Page_present"] = strconv.Itoa(nowpageInt - 1)
+	return ctx.Render("index", viewMap, "layout/main")
+}
+
+// moneyLowRoute 按金额排序由低到高
+func moneyLowRoute(ctx *fiber.Ctx) error {
+	nowpage := ctx.Query("page", "1")
+	nowpageInt := tools.StringToInt(nowpage)
+	viewMap := MakeViewMap(ctx)
+	var allChanges, Changes []database.ChangeModel
+	var pages int = 0
+	_ = database.DatabaseEngine.Table(new(database.ChangeModel)).Where("state = ?", 1).Asc("money").Desc("time").Find(&Changes)
 	if len(Changes) == 0 {
 		return ctx.Render("index", viewMap, "layout/main")
 	}
