@@ -1,6 +1,7 @@
 package server
 
 import (
+	"change/comment"
 	"change/config"
 	"change/logger"
 	"github.com/gofiber/fiber/v2"
@@ -26,6 +27,7 @@ func Start() {
 			return ctx.Render("error", i, "layout/main")
 		}})
 	SessionStore = session.New()
+	comment.SetSessionStore(SessionStore)
 	WebServer.Use(recover2.New())
 	WebServer.Use(etag.New())
 	WebServer.Use(WebLogger.New())

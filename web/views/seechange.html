@@ -178,3 +178,48 @@
 </script>
 <button class="button is-danger" onclick="ReportClick()">举报</button>
 {{end}}
+<br>
+<br>
+<div id="comment"></div>
+<script>
+    $('#comment').comments({
+        profilePictureURL: '/avatar/{{.User_username}}',
+        currentUserIsAdmin: false,
+        textareaPlaceholderText: "发表评论",
+        newestText: "最新",
+        oldestText: "最老",
+        popularText: "最受欢迎",
+        sendText: "发送",
+        replyText: "回复",
+        editText: "编辑",
+        editedText: "修改于",
+        youText: "我",
+        saveText: "保存",
+        deleteText: "删除",
+        noCommentsText: "无评论",
+        getComments: function(success, error) {
+            $.post('/api/comment/get',{change:"{{.Change.ID}}"},function (res){
+                success(res.data);
+            })
+        },
+        postComment: function(commentJSON, success, error) {
+            commentJSON.change = "{{.Change.ID}}";
+            $.ajax({
+                type: 'post',
+                url: '/api/comment/post',
+                data: commentJSON,
+                success: function(comment) {
+                    console.info(JSON.stringify(commentJSON));
+                    success(commentJSON);
+                },
+                error: error
+            });
+        },
+        upvoteComment: function(commentJSON, success, error) {
+            $.post('/api/comment/like',{change:"{{.Change.ID}}",id:commentJSON.id},function (res){
+
+            });
+            success(commentJSON)
+        }
+    });
+</script>

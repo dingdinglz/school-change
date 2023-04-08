@@ -90,3 +90,13 @@ type ReportModel struct {
 func (i *ReportModel) TableName() string {
 	return "report"
 }
+
+type LikeModel struct {
+	User   int
+	Change int
+	Id     string
+}
+
+func (i *LikeModel) TableName() string {
+	return "like"
+}

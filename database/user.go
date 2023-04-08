@@ -158,3 +158,13 @@ func UserApplyPass(ip string) error {
 func UserApplyStop(ip string) {
 	_, _ = DatabaseEngine.Table(new(ApplyModel)).Where("ip = ?", ip).Delete()
 }
+
+// UserGetRealnameByID 根据id取realname
+func UserGetRealnameByID(id int) string {
+	if !UserHaveUserByID(id) {
+		return ""
+	}
+	var u UserModel
+	_, _ = DatabaseEngine.Table(new(UserModel)).Where("id = ?", id).Get(&u)
+	return u.Realname
+}

@@ -1,6 +1,7 @@
 package server
 
 import (
+	"change/comment"
 	"change/config"
 	"change/database"
 	"change/tools"
@@ -105,6 +106,12 @@ func BindRoutes() {
 
 	apiCreateRoute := apiRoute.Group("/create")
 	apiCreateRoute.Post("/change", apiCreateChange)
+
+	commentRoute := apiRoute.Group("/comment")
+	commentRoute.Use(middleMustLogin)
+	commentRoute.Post("/post", comment.RouteCreate)
+	commentRoute.Post("/get", comment.RouteGet)
+	commentRoute.Post("/like", comment.RouteLike)
 
 	adminRoute := WebServer.Group("/admin")
 	adminRoute.Use(middleAdminRoute)
