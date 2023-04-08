@@ -199,6 +199,11 @@
         noCommentsText: "无评论",
         getComments: function(success, error) {
             $.post('/api/comment/get',{change:"{{.Change.ID}}"},function (res){
+                if(res==="{\"data\":[]}")
+                {
+                    success([]);
+                    return;
+                }
                 success(res.data);
             })
         },
